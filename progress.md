@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T11  
-**Last Completed**: T10  
-**Total Progress**: 10 / 41 tasks  
+**Next Task**: T12  
+**Last Completed**: T11  
+**Total Progress**: 11 / 41 tasks  
 
 ---
 
@@ -30,7 +30,7 @@
 - [x] **T08**: Chunking tests — Test each strategy: correct chunk count, overlap behavior, boundary respect, metadata preservation
 - [x] **T09**: Embedding service — Implement `EmbeddingService` wrapping sentence-transformers
 - [x] **T10**: Embedding tests — Test embedding generation, dimensionality, batch processing
-- [ ] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
+- [x] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
 - [ ] **T12**: Vector store tests — Test CRUD operations, similarity queries, collection management
 - [ ] **T13**: Search engine service — Implement Tantivy wrapper (index/search/delete)
 - [ ] **T14**: Search engine tests — Test indexing, word search, phrase search, case-insensitive matching
@@ -87,6 +87,7 @@
 | 2026-04-07 | T08 | Added detailed chunking tests validating counts, overlap windows, boundaries, and metadata propagation across all strategies | Guards chunking behavior needed for deterministic indexing and retrieval |
 | 2026-04-07 | T09 | Implemented `EmbeddingService` with sentence-transformers integration and deterministic fallback vectors for offline/local test stability | Enables semantic embedding pipeline without blocking on heavyweight runtime model availability |
 | 2026-04-07 | T10 | Expanded embedding tests for generation shape, batch behavior, determinism, empty batch handling, and input validation | Hardens embedding API contract before vector store integration |
+| 2026-04-07 | T11 | Implemented `VectorStore` ChromaDB wrapper with collection lifecycle, add, and query APIs | Establishes persistence and similarity retrieval foundation for hybrid search |
 
 ---
 

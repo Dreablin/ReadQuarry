@@ -6,6 +6,7 @@ from src.core.chunking import (
     SentenceChunking,
 )
 from src.core.embeddings import EmbeddingService
+from src.core.vector_store import VectorStore
 
 __all__ = [
     "ChapterAwareRecursiveChunking",
@@ -14,4 +15,5 @@ __all__ = [
     "FixedSizeChunking",
     "ParagraphChunking",
     "SentenceChunking",
+    "VectorStore",
 ]
