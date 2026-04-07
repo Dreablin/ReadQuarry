@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T05  
-**Last Completed**: T04  
-**Total Progress**: 4 / 41 tasks  
+**Next Task**: T06  
+**Last Completed**: T05  
+**Total Progress**: 5 / 41 tasks  
 
 ---
 
@@ -24,7 +24,7 @@
 ### Phase 2: Book Ingestion Pipeline
 
 - [x] **T04**: Parser base class — Implement `BaseParser` ABC and `ParserRegistry`
-- [ ] **T05**: EPUB parser — Implement `EpubParser` with chapter extraction and HTML cleaning
+- [x] **T05**: EPUB parser — Implement `EpubParser` with chapter extraction and HTML cleaning
 - [ ] **T06**: EPUB parser tests — Test with valid EPUB, chapter extraction, malformed files, HTML stripping
 - [ ] **T07**: Chunking strategies — Implement `ChunkingStrategy` interface and all 4 strategies (paragraph, sentence, fixed-size, chapter-aware recursive)
 - [ ] **T08**: Chunking tests — Test each strategy: correct chunk count, overlap behavior, boundary respect, metadata preservation
@@ -81,6 +81,7 @@
 | 2026-04-07 | T02 | Added SQLAlchemy declarative models and session setup in modular files | Matches PRD schema and prepares explicit CRUD/cascade testing in T03 |
 | 2026-04-07 | T03 | Added isolated in-memory SQLite model tests with FK enforcement for CRUD, cascade, and unique constraints | Locks database behavior before API/core layers build on it |
 | 2026-04-07 | T04 | Added parser contracts (`BaseParser`, `ParsedBook`, `ParsedChapter`) and registry resolution logic with extension introspection | Establishes pluggable parser architecture required for EPUB and future formats |
+| 2026-04-07 | T05 | Implemented `EpubParser` with extension detection, HTML cleaning, metadata extraction, and chapter document parsing | Provides working EPUB ingestion primitive for upcoming detailed parser tests |
 
 ---
 
