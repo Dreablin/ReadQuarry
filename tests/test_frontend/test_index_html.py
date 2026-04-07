@@ -76,3 +76,11 @@ def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-form" in index_html
     assert "settings-feedback" in index_html
     assert "settings-llm_mode" in index_html
+
+
+def test_index_html_search_view_and_app_module(index_html: str) -> None:
+    assert "view-search" in index_html
+    assert "search-query" in index_html
+    assert "search-results" in index_html
+    assert 'src="js/app.js"' in index_html
+    assert 'type="module"' in index_html

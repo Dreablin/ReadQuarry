@@ -60,6 +60,30 @@
           Clear references
         </button>
       </aside>
+
+      <section
+        id="view-search"
+        class="panel panel--search"
+        aria-labelledby="search-heading"
+        hidden
+      >
+        <h2 id="search-heading" class="panel__title">Search in book</h2>
+        <form id="search-form" class="search-form" action="#" method="get">
+          <label class="sr-only" for="search-query">Search query</label>
+          <input
+            type="search"
+            id="search-query"
+            name="q"
+            placeholder="Search text or &quot;phrase&quot;…"
+            autocomplete="off"
+          />
+          <button type="submit" id="search-submit" class="btn-send">Search</button>
+        </form>
+        <div id="search-results" class="search-results" role="region" aria-live="polite"></div>
+        <button type="button" id="search-back" class="btn-clear">
+          Back to discussion
+        </button>
+      </section>
     </main>
 
     <footer class="app-footer">
@@ -171,5 +195,7 @@
         </div>
       </form>
     </dialog>
+
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>

@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 4 — Frontend  
-**Next Task**: T37  
-**Last Completed**: T36  
-**Total Progress**: 36 / 41 tasks  
+**Next Task**: T38  
+**Last Completed**: T37  
+**Total Progress**: 37 / 41 tasks  
 
 ---
 
@@ -62,7 +62,7 @@
 - [x] **T34**: Chat component — Create `chat.js` with message rendering, SSE streaming, typing indicator
 - [x] **T35**: References panel component — Create `references.js` with chunk display, highlighting, clear button
 - [x] **T36**: Settings component — Create `settings.js` with the settings modal/form
-- [ ] **T37**: App controller — Create `app.js` wiring all components together, routing between views
+- [x] **T37**: App controller — Create `app.js` wiring all components together, routing between views
 - [ ] **T38**: Static file serving — Configure FastAPI to serve static files and the SPA
 
 ### Phase 5: Polish & Startup
@@ -113,6 +113,7 @@
 | 2026-04-07 | T34 | Added `static/js/components/chat.js`: `initChat({ getSessionId, onError, onDone })` renders user/assistant bubbles, typing indicator during request, `ReadableStream` SSE parse (`delta`/`error`/`done`), `loadHistory`/`clearMessages`; message bubble styles in `style.css`; `tests/test_frontend/test_chat_js.py` | Session creation/book binding left to T37 |
 | 2026-04-07 | T35 | Added `static/js/components/references.js`: `initReferences` → `clear`, `setHighlightQuery`, `appendReferencedChunkIds` (uses `getBookChunks`), `appendReferenceEntry`; `<mark class="ref-highlight">` for query; `#clear-references` clears list only; chunk card styles in `style.css`; `tests/test_frontend/test_references_js.py` | Chunks HTTP route may 404 until implemented; fallback message shown |
 | 2026-04-07 | T36 | Added `#settings-dialog` / `#settings-form` in `index.html` (all Settings API fields), `static/js/components/settings.js` (`initSettings`: open loads `getSettings`, save `updateSettings`, reset `resetSettings`, test `testLlm`), layout styles in `style.css`; `tests/test_frontend/test_settings_js.py` + index structural test | Modal markup lives in HTML shell; `app.js` import deferred to T37 |
+| 2026-04-07 | T37 | Added `static/js/app.js` (`initApp`): book list + `ensureSession` (`listChatSessions` or `createChatSession`), chat with `onDone` → references; upload `onSuccess` → `refresh`; `#view-search` in `index.html` with hybrid `searchHybrid` results; `data-view` discuss/search toggles chat+refs vs search panel; `<script type="module" src="js/app.js">`; `tests/test_frontend/test_app_js.py` | Search results render in `#search-results`; references highlight query set for consistency |
 
 ---
 
