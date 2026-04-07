@@ -5,7 +5,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_required_root_files_exist() -> None:
-    required_files = ["requirements.txt", "main.py", "config.py", ".gitignore"]
+    required_files = [
+        "requirements.txt",
+        "main.py",
+        "config.py",
+        ".gitignore",
+        "start.bat",
+        "start.sh",
+    ]
     for file_name in required_files:
         assert (ROOT / file_name).is_file(), f"Missing file: {file_name}"
 

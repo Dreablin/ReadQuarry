@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 5 — Polish & Startup  
-**Next Task**: T39  
-**Last Completed**: T38  
-**Total Progress**: 38 / 41 tasks  
+**Next Task**: T40  
+**Last Completed**: T39  
+**Total Progress**: 39 / 41 tasks  
 
 ---
 
@@ -67,7 +67,7 @@
 
 ### Phase 5: Polish & Startup
 
-- [ ] **T39**: Startup scripts — Create `start.bat` and `start.sh` with venv, deps, and browser launch
+- [x] **T39**: Startup scripts — Create `start.bat` and `start.sh` with venv, deps, and browser launch
 - [ ] **T40**: Error handling — Add global error handlers, user-friendly error messages throughout
 - [ ] **T41**: End-to-end manual verification — Upload an EPUB, discuss it, verify references, test search, test settings
 
@@ -115,6 +115,7 @@
 | 2026-04-07 | T36 | Added `#settings-dialog` / `#settings-form` in `index.html` (all Settings API fields), `static/js/components/settings.js` (`initSettings`: open loads `getSettings`, save `updateSettings`, reset `resetSettings`, test `testLlm`), layout styles in `style.css`; `tests/test_frontend/test_settings_js.py` + index structural test | Modal markup lives in HTML shell; `app.js` import deferred to T37 |
 | 2026-04-07 | T37 | Added `static/js/app.js` (`initApp`): book list + `ensureSession` (`listChatSessions` or `createChatSession`), chat with `onDone` → references; upload `onSuccess` → `refresh`; `#view-search` in `index.html` with hybrid `searchHybrid` results; `data-view` discuss/search toggles chat+refs vs search panel; `<script type="module" src="js/app.js">`; `tests/test_frontend/test_app_js.py` | Search results render in `#search-results`; references highlight query set for consistency |
 | 2026-04-07 | T38 | `config.settings.static_dir` → repo `static/`; `main.py` mounts `StaticFiles(..., html=True)` at `/` after API routers and `/health`; `tests/test_api/test_static_serving.py` checks `/`, `/css/style.css`, `/js/app.js`, and that `/api/settings` + `/health` still work | Mount registered last so API routes take precedence; `html=True` serves `index.html` at `/` |
+| 2026-04-07 | T39 | Added `start.bat` (Windows) and `start.sh` (Unix): Python 3.10+ check, `.venv` create/activate, `pip install -r requirements.txt`, open `http://127.0.0.1:8000/`, `python main.py`; `tests/test_startup_scripts.py` structural checks; `test_scaffolding` lists both scripts | `start.sh` uses `xdg-open` or `open` after 1s delay; browser may load before server is ready on first run |
 
 ---
 
