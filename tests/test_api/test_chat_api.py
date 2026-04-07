@@ -129,3 +129,81 @@ def test_chat_message_404_bad_session(client_with_db: TestClient, memory_db: Ses
     _insert_book(memory_db)
     r = client_with_db.post("/api/chat/sessions/99999/message", json={"content": "x"})
     assert r.status_code == 404
+
+
+def test_chat_list_sessions_requires_book_id(client_with_db: TestClient, memory_db: Session) -> None:
+    r = client_with_db.get("/api/chat/sessions")
+    assert r.status_code == 422
+
+
+def test_chat_get_messages_404_unknown_session(client_with_db: TestClient, memory_db: Session) -> None:
+    _insert_book(memory_db)
+    r = client_with_db.get("/api/chat/sessions/99999/messages")
+    assert r.status_code == 404
+
+
+def test_chat_post_message_rejects_empty_content(client_with_db: TestClient, memory_db: Session) -> None:
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+    r = client_with_db.post(f"/api/chat/sessions/{sid}/message", json={"content": ""})
+    assert r.status_code == 422
+
+
+def test_chat_create_session_rejects_non_positive_book_id(client_with_db: TestClient, memory_db: Session) -> None:
+    r = client_with_db.post("/api/chat/sessions", json={"book_id": 0})
+    assert r.status_code == 422
+
+
+def test_chat_sessions_list_newest_first(client_with_db: TestClient, memory_db: Session) -> None:
+    bid = _insert_book(memory_db)
+    first = client_with_db.post("/api/chat/sessions", json={"book_id": bid, "title": "Older"}).json()
+    second = client_with_db.post("/api/chat/sessions", json={"book_id": bid, "title": "Newer"}).json()
+    listed = client_with_db.get("/api/chat/sessions", params={"book_id": bid}).json()
+    assert len(listed) == 2
+    assert listed[0]["id"] == second["id"]
+    assert listed[0]["title"] == "Newer"
+    assert listed[1]["id"] == first["id"]
+
+
+def test_chat_messages_history_order_after_two_turns(client_with_db: TestClient, memory_db: Session) -> None:
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+
+    def _stream_once(text: str) -> object:
+        chunk = MagicMock()
+        chunk.choices = [MagicMock(delta=MagicMock(content=text))]
+        yield chunk
+
+    with patch("src.api.chat.LLMClient") as mock_llm_cls:
+        mock_llm_cls.return_value.chat_completion.return_value = _stream_once("A")
+        client_with_db.post(f"/api/chat/sessions/{sid}/message", json={"content": "one"})
+        mock_llm_cls.return_value.chat_completion.return_value = _stream_once("B")
+        client_with_db.post(f"/api/chat/sessions/{sid}/message", json={"content": "two"})
+
+    msgs = client_with_db.get(f"/api/chat/sessions/{sid}/messages").json()
+    assert len(msgs) == 4
+    roles = [m["role"] for m in msgs]
+    contents = [m["content"] for m in msgs]
+    assert roles == ["user", "assistant", "user", "assistant"]
+    assert contents == ["one", "A", "two", "B"]
+
+
+def test_chat_sse_stream_includes_error_when_llm_raises(client_with_db: TestClient, memory_db: Session) -> None:
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+
+    with patch("src.api.chat.LLMClient") as mock_llm_cls:
+        mock_llm_cls.return_value.chat_completion.side_effect = RuntimeError("provider down")
+        r = client_with_db.post(
+            f"/api/chat/sessions/{sid}/message",
+            json={"content": "Hi"},
+        )
+
+    assert r.status_code == 200
+    assert r.headers.get("content-type", "").startswith("text/event-stream")
+    assert "error" in r.text
+    assert "provider down" in r.text
+    assert "done" not in r.text
+    hist = client_with_db.get(f"/api/chat/sessions/{sid}/messages").json()
+    assert len(hist) == 1
+    assert hist[0]["role"] == "user"

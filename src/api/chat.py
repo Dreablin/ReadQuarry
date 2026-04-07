@@ -194,7 +194,12 @@ def create_session(payload: CreateSessionBody, db: Session = Depends(get_db)) ->
 
 @router.get("/sessions")
 def list_sessions(book_id: int, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    rows = db.query(ChatSession).filter(ChatSession.book_id == book_id).order_by(ChatSession.created_at.desc()).all()
+    rows = (
+        db.query(ChatSession)
+        .filter(ChatSession.book_id == book_id)
+        .order_by(ChatSession.created_at.desc(), ChatSession.id.desc())
+        .all()
+    )
     return [
         {
             "id": r.id,

@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T28  
-**Last Completed**: T27  
-**Total Progress**: 27 / 41 tasks  
+**Next Task**: T29  
+**Last Completed**: T28  
+**Total Progress**: 28 / 41 tasks  
 
 ---
 
@@ -50,7 +50,7 @@
 - [x] **T25**: LLM client — Implement unified LLM client (Ollama + OpenAI-compatible cloud)
 - [x] **T26**: LLM client tests — Test client initialization, request formatting, error handling (use mocks)
 - [x] **T27**: Chat API — Implement session management and message endpoint with SSE streaming
-- [ ] **T28**: Chat API tests — Test session creation, message sending, history retrieval
+- [x] **T28**: Chat API tests — Test session creation, message sending, history retrieval
 
 ### Phase 4: Frontend
 
@@ -104,6 +104,7 @@
 | 2026-04-07 | T25 | Implemented `LLMClient` with OpenAI SDK: Ollama mode uses `{base}/v1` and dummy `api_key`; cloud mode uses optional `api_base_url`; `chat_completion` applies settings defaults for model, max_tokens, temperature | Matches PRD unified openai-compatible integration for local and cloud providers |
 | 2026-04-07 | T26 | Expanded `test_llm_client` with mocked OpenAI: default models, trailing-slash base URL, stream and sampling kwargs passthrough, explicit overrides, and propagated provider errors | Locks LLM client contract without network calls |
 | 2026-04-07 | T27 | Added `src/api/chat.py`: SQLAlchemy-backed sessions/messages, hybrid RAG context (skipped when book has no chunks), `LLMClient` streaming, SSE `delta`/`done`/`error` events; lifespan `create_all` in `main.py` | Matches PRD chat routes and discuss flow; chat requires rows in SQLite `books` (upload API still in-memory until unified) |
+| 2026-04-07 | T28 | Expanded `test_chat_api`: validation/404s, multi-turn history order, SSE error stream, session list ordering; `list_sessions` tie-breaks with `id` desc when `created_at` ties | Stable ordering for rapid session creation |
 
 ---
 
