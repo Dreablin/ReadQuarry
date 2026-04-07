@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T08  
-**Last Completed**: T07  
-**Total Progress**: 7 / 41 tasks  
+**Next Task**: T09  
+**Last Completed**: T08  
+**Total Progress**: 8 / 41 tasks  
 
 ---
 
@@ -27,7 +27,7 @@
 - [x] **T05**: EPUB parser — Implement `EpubParser` with chapter extraction and HTML cleaning
 - [x] **T06**: EPUB parser tests — Test with valid EPUB, chapter extraction, malformed files, HTML stripping
 - [x] **T07**: Chunking strategies — Implement `ChunkingStrategy` interface and all 4 strategies (paragraph, sentence, fixed-size, chapter-aware recursive)
-- [ ] **T08**: Chunking tests — Test each strategy: correct chunk count, overlap behavior, boundary respect, metadata preservation
+- [x] **T08**: Chunking tests — Test each strategy: correct chunk count, overlap behavior, boundary respect, metadata preservation
 - [ ] **T09**: Embedding service — Implement `EmbeddingService` wrapping sentence-transformers
 - [ ] **T10**: Embedding tests — Test embedding generation, dimensionality, batch processing
 - [ ] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
@@ -84,6 +84,7 @@
 | 2026-04-07 | T05 | Implemented `EpubParser` with extension detection, HTML cleaning, metadata extraction, and chapter document parsing | Provides working EPUB ingestion primitive for upcoming detailed parser tests |
 | 2026-04-07 | T06 | Expanded EPUB parser tests to cover generated valid EPUBs, chapter extraction, malformed files, and HTML stripping behavior | Validates parser reliability before chunking and ingestion pipeline work |
 | 2026-04-07 | T07 | Implemented chunking strategy interface and all four strategies with overlap-aware metadata-rich chunk outputs | Unblocks strategy-level behavioral testing and downstream ingestion orchestration |
+| 2026-04-07 | T08 | Added detailed chunking tests validating counts, overlap windows, boundaries, and metadata propagation across all strategies | Guards chunking behavior needed for deterministic indexing and retrieval |
 
 ---
 
