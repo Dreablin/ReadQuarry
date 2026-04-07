@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T26  
-**Last Completed**: T25  
-**Total Progress**: 25 / 41 tasks  
+**Next Task**: T27  
+**Last Completed**: T26  
+**Total Progress**: 26 / 41 tasks  
 
 ---
 
@@ -48,7 +48,7 @@
 - [x] **T23**: Settings API — Implement get, update, reset, test-llm endpoints
 - [x] **T24**: Settings API tests — Test settings CRUD and validation
 - [x] **T25**: LLM client — Implement unified LLM client (Ollama + OpenAI-compatible cloud)
-- [ ] **T26**: LLM client tests — Test client initialization, request formatting, error handling (use mocks)
+- [x] **T26**: LLM client tests — Test client initialization, request formatting, error handling (use mocks)
 - [ ] **T27**: Chat API — Implement session management and message endpoint with SSE streaming
 - [ ] **T28**: Chat API tests — Test session creation, message sending, history retrieval
 
@@ -102,6 +102,7 @@
 | 2026-04-07 | T23 | Implemented Settings API endpoints (get/update/reset/test-llm) with validation for cloud mode API key requirement | Provides settings management surface for LLM/search configuration |
 | 2026-04-07 | T24 | Expanded Settings API tests for enum/range validation, partial updates, and http(s) URL checks on Ollama/cloud base URLs | Aligns API behavior with PRD validation expectations |
 | 2026-04-07 | T25 | Implemented `LLMClient` with OpenAI SDK: Ollama mode uses `{base}/v1` and dummy `api_key`; cloud mode uses optional `api_base_url`; `chat_completion` applies settings defaults for model, max_tokens, temperature | Matches PRD unified openai-compatible integration for local and cloud providers |
+| 2026-04-07 | T26 | Expanded `test_llm_client` with mocked OpenAI: default models, trailing-slash base URL, stream and sampling kwargs passthrough, explicit overrides, and propagated provider errors | Locks LLM client contract without network calls |
 
 ---
 
