@@ -6,10 +6,10 @@
 
 ## Current Status
 
-**Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T18  
-**Last Completed**: T17  
-**Total Progress**: 17 / 41 tasks  
+**Phase**: 3 — API Layer  
+**Next Task**: T19  
+**Last Completed**: T18  
+**Total Progress**: 18 / 41 tasks  
 
 ---
 
@@ -37,7 +37,7 @@
 - [x] **T15**: Hybrid search — Implement `HybridSearch` combining semantic + exact results with deduplication and ranking
 - [x] **T16**: Hybrid search tests — Test merging, deduplication, ranking with various combinations
 - [x] **T17**: Book processor — Implement `BookProcessor` orchestrating the full pipeline (parse → split → chunk → embed → index)
-- [ ] **T18**: Book processor tests — Integration test of full ingestion pipeline
+- [x] **T18**: Book processor tests — Integration test of full ingestion pipeline
 
 ### Phase 3: API Layer
 
@@ -94,6 +94,7 @@
 | 2026-04-07 | T15 | Implemented `HybridSearch` merge pipeline combining semantic and exact scores with chunk-level deduplication and final-N truncation | Enables unified retrieval ranking for downstream chat context assembly |
 | 2026-04-07 | T16 | Expanded hybrid-search tests for empty inputs, tie-break ordering, and repeated exact-hit aggregation | Strengthens result-merging guarantees before book-processor integration |
 | 2026-04-07 | T17 | Implemented `BookProcessor` orchestration flow connecting parser selection, chunking, embedding generation, vector persistence, and exact index population | Provides the core end-to-end ingestion execution path |
+| 2026-04-07 | T18 | Added book-processor integration coverage with real service components and empty-content guard behavior | Validates full ingestion pipeline wiring and stabilizes no-chunk edge handling |
 
 ---
 

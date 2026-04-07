@@ -42,7 +42,6 @@ class BookProcessor:
                 chunks.append(chunk)
 
         texts = [c["text"] for c in chunks]
-        embeddings = self.embedding_service.embed_texts(texts)
         chunk_ids = [f"{book_id}_{i}" for i in range(len(chunks))]
         metadatas = [
             {
@@ -54,25 +53,27 @@ class BookProcessor:
             for c in chunks
         ]
 
-        self.vector_store.add_documents(
-            collection_name=f"book_{book_id}",
-            ids=chunk_ids,
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=metadatas,
-        )
+        if chunks:
+            embeddings = self.embedding_service.embed_texts(texts)
+            self.vector_store.add_documents(
+                collection_name=f"book_{book_id}",
+                ids=chunk_ids,
+                embeddings=embeddings,
+                documents=texts,
+                metadatas=metadatas,
+            )
 
-        self.search_engine.index_documents(
-            [
-                {
-                    "chunk_id": chunk_ids[i],
-                    "text": texts[i],
-                    "chapter": metadatas[i]["chapter"],
-                    "chunk_index": metadatas[i]["chunk_index"],
-                }
-                for i in range(len(chunks))
-            ]
-        )
+            self.search_engine.index_documents(
+                [
+                    {
+                        "chunk_id": chunk_ids[i],
+                        "text": texts[i],
+                        "chapter": metadatas[i]["chapter"],
+                        "chunk_index": metadatas[i]["chunk_index"],
+                    }
+                    for i in range(len(chunks))
+                ]
+            )
 
         return {
             "book_id": book_id,
