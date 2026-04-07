@@ -6,6 +6,7 @@ from src.core.chunking import (
     SentenceChunking,
 )
 from src.core.embeddings import EmbeddingService
+from src.core.hybrid_search import HybridSearch
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 
@@ -14,6 +15,7 @@ __all__ = [
     "ChunkingStrategy",
     "EmbeddingService",
     "FixedSizeChunking",
+    "HybridSearch",
     "ParagraphChunking",
     "SearchEngine",
     "SentenceChunking",
