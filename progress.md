@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 4 — Frontend  
-**Next Task**: T35  
-**Last Completed**: T34  
-**Total Progress**: 34 / 41 tasks  
+**Next Task**: T36  
+**Last Completed**: T35  
+**Total Progress**: 35 / 41 tasks  
 
 ---
 
@@ -60,7 +60,7 @@
 - [x] **T32**: Book upload component — Create `book-upload.js` with drag-drop, chunking selector, progress bar
 - [x] **T33**: Book list component — Create `book-list.js` with dropdown selector
 - [x] **T34**: Chat component — Create `chat.js` with message rendering, SSE streaming, typing indicator
-- [ ] **T35**: References panel component — Create `references.js` with chunk display, highlighting, clear button
+- [x] **T35**: References panel component — Create `references.js` with chunk display, highlighting, clear button
 - [ ] **T36**: Settings component — Create `settings.js` with the settings modal/form
 - [ ] **T37**: App controller — Create `app.js` wiring all components together, routing between views
 - [ ] **T38**: Static file serving — Configure FastAPI to serve static files and the SPA
@@ -111,6 +111,7 @@
 | 2026-04-07 | T32 | Added `static/js/components/book-upload.js`: `initBookUpload` wires dialog/dropzone/file/chunking/progress, DnD + click, EPUB validation, fake progress to ~92% during `uploadBook`, `onSuccess`/`onError` hooks; `.upload-dropzone--active` in CSS | Wired to existing `index.html` ids; `app.js` import deferred to T37 |
 | 2026-04-07 | T33 | Added `static/js/components/book-list.js`: async `initBookList` loads `listBooks()`, fills `#book-select` with title/file labels, optional `onChange`, returns `{ refresh, getSelectedBookId }`; `tests/test_frontend/test_book_list_js.py` | App wiring in T37; call `refresh()` after upload success |
 | 2026-04-07 | T34 | Added `static/js/components/chat.js`: `initChat({ getSessionId, onError, onDone })` renders user/assistant bubbles, typing indicator during request, `ReadableStream` SSE parse (`delta`/`error`/`done`), `loadHistory`/`clearMessages`; message bubble styles in `style.css`; `tests/test_frontend/test_chat_js.py` | Session creation/book binding left to T37 |
+| 2026-04-07 | T35 | Added `static/js/components/references.js`: `initReferences` → `clear`, `setHighlightQuery`, `appendReferencedChunkIds` (uses `getBookChunks`), `appendReferenceEntry`; `<mark class="ref-highlight">` for query; `#clear-references` clears list only; chunk card styles in `style.css`; `tests/test_frontend/test_references_js.py` | Chunks HTTP route may 404 until implemented; fallback message shown |
 
 ---
 

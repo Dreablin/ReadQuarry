@@ -345,6 +345,47 @@ body {
   background: rgba(8, 10, 18, 0.35);
 }
 
+.reference-chunk {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.reference-chunk__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.reference-chunk__label {
+  font-weight: 700;
+  color: var(--color-accent-end);
+  font-size: 0.9rem;
+}
+
+.reference-chunk__meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.reference-chunk__body {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ref-highlight {
+  background: rgba(250, 204, 21, 0.35);
+  color: var(--color-text);
+  padding: 0 0.15em;
+  border-radius: 2px;
+}
+
 .btn-clear {
   margin-top: var(--space-md);
   padding: var(--space-sm) var(--space-md);
