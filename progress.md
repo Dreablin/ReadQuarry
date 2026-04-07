@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T10  
-**Last Completed**: T09  
-**Total Progress**: 9 / 41 tasks  
+**Next Task**: T11  
+**Last Completed**: T10  
+**Total Progress**: 10 / 41 tasks  
 
 ---
 
@@ -29,7 +29,7 @@
 - [x] **T07**: Chunking strategies — Implement `ChunkingStrategy` interface and all 4 strategies (paragraph, sentence, fixed-size, chapter-aware recursive)
 - [x] **T08**: Chunking tests — Test each strategy: correct chunk count, overlap behavior, boundary respect, metadata preservation
 - [x] **T09**: Embedding service — Implement `EmbeddingService` wrapping sentence-transformers
-- [ ] **T10**: Embedding tests — Test embedding generation, dimensionality, batch processing
+- [x] **T10**: Embedding tests — Test embedding generation, dimensionality, batch processing
 - [ ] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
 - [ ] **T12**: Vector store tests — Test CRUD operations, similarity queries, collection management
 - [ ] **T13**: Search engine service — Implement Tantivy wrapper (index/search/delete)
@@ -86,6 +86,7 @@
 | 2026-04-07 | T07 | Implemented chunking strategy interface and all four strategies with overlap-aware metadata-rich chunk outputs | Unblocks strategy-level behavioral testing and downstream ingestion orchestration |
 | 2026-04-07 | T08 | Added detailed chunking tests validating counts, overlap windows, boundaries, and metadata propagation across all strategies | Guards chunking behavior needed for deterministic indexing and retrieval |
 | 2026-04-07 | T09 | Implemented `EmbeddingService` with sentence-transformers integration and deterministic fallback vectors for offline/local test stability | Enables semantic embedding pipeline without blocking on heavyweight runtime model availability |
+| 2026-04-07 | T10 | Expanded embedding tests for generation shape, batch behavior, determinism, empty batch handling, and input validation | Hardens embedding API contract before vector store integration |
 
 ---
 

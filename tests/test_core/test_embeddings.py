@@ -20,3 +20,19 @@ def test_embedding_service_is_deterministic_for_same_text() -> None:
     v1 = service.embed_text("same input")
     v2 = service.embed_text("same input")
     assert v1 == v2
+
+
+def test_embedding_service_rejects_non_string_input() -> None:
+    service = EmbeddingService()
+    try:
+        service.embed_text(123)  # type: ignore[arg-type]
+        raised = False
+    except TypeError:
+        raised = True
+    assert raised is True
+
+
+def test_embedding_service_handles_empty_batch() -> None:
+    service = EmbeddingService()
+    vectors = service.embed_texts([])
+    assert vectors == []

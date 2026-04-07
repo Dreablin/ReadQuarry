@@ -26,12 +26,18 @@ class EmbeddingService:
         return [round(rng.uniform(-1.0, 1.0), 8) for _ in range(self.dimension)]
 
     def embed_text(self, text: str) -> list[float]:
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
         if self._model is None:
             return self._fallback_embed(text)
         vector = self._model.encode(text)
         return [float(v) for v in vector]
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        if not isinstance(texts, list):
+            raise TypeError("texts must be a list of strings")
+        if any(not isinstance(text, str) for text in texts):
+            raise TypeError("texts must be a list of strings")
         if self._model is None:
             return [self._fallback_embed(text) for text in texts]
         vectors = self._model.encode(texts)
