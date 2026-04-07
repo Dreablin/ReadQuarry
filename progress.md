@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T04  
-**Last Completed**: T03  
-**Total Progress**: 3 / 41 tasks  
+**Next Task**: T05  
+**Last Completed**: T04  
+**Total Progress**: 4 / 41 tasks  
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### Phase 2: Book Ingestion Pipeline
 
-- [ ] **T04**: Parser base class — Implement `BaseParser` ABC and `ParserRegistry`
+- [x] **T04**: Parser base class — Implement `BaseParser` ABC and `ParserRegistry`
 - [ ] **T05**: EPUB parser — Implement `EpubParser` with chapter extraction and HTML cleaning
 - [ ] **T06**: EPUB parser tests — Test with valid EPUB, chapter extraction, malformed files, HTML stripping
 - [ ] **T07**: Chunking strategies — Implement `ChunkingStrategy` interface and all 4 strategies (paragraph, sentence, fixed-size, chapter-aware recursive)
@@ -80,6 +80,7 @@
 | 2026-04-07 | T01 | Added minimal scaffold test and initial app/config/requirements structure | Establishes a runnable baseline and validates required directories/files exist |
 | 2026-04-07 | T02 | Added SQLAlchemy declarative models and session setup in modular files | Matches PRD schema and prepares explicit CRUD/cascade testing in T03 |
 | 2026-04-07 | T03 | Added isolated in-memory SQLite model tests with FK enforcement for CRUD, cascade, and unique constraints | Locks database behavior before API/core layers build on it |
+| 2026-04-07 | T04 | Added parser contracts (`BaseParser`, `ParsedBook`, `ParsedChapter`) and registry resolution logic with extension introspection | Establishes pluggable parser architecture required for EPUB and future formats |
 
 ---
 
