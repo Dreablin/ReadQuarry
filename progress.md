@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T13  
-**Last Completed**: T12  
-**Total Progress**: 12 / 41 tasks  
+**Next Task**: T14  
+**Last Completed**: T13  
+**Total Progress**: 13 / 41 tasks  
 
 ---
 
@@ -32,7 +32,7 @@
 - [x] **T10**: Embedding tests — Test embedding generation, dimensionality, batch processing
 - [x] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
 - [x] **T12**: Vector store tests — Test CRUD operations, similarity queries, collection management
-- [ ] **T13**: Search engine service — Implement Tantivy wrapper (index/search/delete)
+- [x] **T13**: Search engine service — Implement Tantivy wrapper (index/search/delete)
 - [ ] **T14**: Search engine tests — Test indexing, word search, phrase search, case-insensitive matching
 - [ ] **T15**: Hybrid search — Implement `HybridSearch` combining semantic + exact results with deduplication and ranking
 - [ ] **T16**: Hybrid search tests — Test merging, deduplication, ranking with various combinations
@@ -89,6 +89,7 @@
 | 2026-04-07 | T10 | Expanded embedding tests for generation shape, batch behavior, determinism, empty batch handling, and input validation | Hardens embedding API contract before vector store integration |
 | 2026-04-07 | T11 | Implemented `VectorStore` ChromaDB wrapper with collection lifecycle, add, and query APIs | Establishes persistence and similarity retrieval foundation for hybrid search |
 | 2026-04-07 | T12 | Expanded vector store tests for CRUD, similarity query behavior, custom persistence paths, and idempotent missing-collection deletion | Verifies robust collection management semantics before search integration |
+| 2026-04-07 | T13 | Added `SearchEngine` wrapper with index/add/search/delete behavior and case-insensitive exact matching | Establishes full-text retrieval interface needed before dedicated search behavior tests |
 
 ---
 
