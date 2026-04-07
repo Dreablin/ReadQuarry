@@ -69,3 +69,10 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-dropzone" in index_html
     assert "chunking-strategy" in index_html
     assert "upload-progress" in index_html
+
+
+def test_index_html_settings_dialog(index_html: str) -> None:
+    assert "settings-dialog" in index_html
+    assert "settings-form" in index_html
+    assert "settings-feedback" in index_html
+    assert "settings-llm_mode" in index_html

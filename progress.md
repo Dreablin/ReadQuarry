@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 4 — Frontend  
-**Next Task**: T36  
-**Last Completed**: T35  
-**Total Progress**: 35 / 41 tasks  
+**Next Task**: T37  
+**Last Completed**: T36  
+**Total Progress**: 36 / 41 tasks  
 
 ---
 
@@ -61,7 +61,7 @@
 - [x] **T33**: Book list component — Create `book-list.js` with dropdown selector
 - [x] **T34**: Chat component — Create `chat.js` with message rendering, SSE streaming, typing indicator
 - [x] **T35**: References panel component — Create `references.js` with chunk display, highlighting, clear button
-- [ ] **T36**: Settings component — Create `settings.js` with the settings modal/form
+- [x] **T36**: Settings component — Create `settings.js` with the settings modal/form
 - [ ] **T37**: App controller — Create `app.js` wiring all components together, routing between views
 - [ ] **T38**: Static file serving — Configure FastAPI to serve static files and the SPA
 
@@ -112,6 +112,7 @@
 | 2026-04-07 | T33 | Added `static/js/components/book-list.js`: async `initBookList` loads `listBooks()`, fills `#book-select` with title/file labels, optional `onChange`, returns `{ refresh, getSelectedBookId }`; `tests/test_frontend/test_book_list_js.py` | App wiring in T37; call `refresh()` after upload success |
 | 2026-04-07 | T34 | Added `static/js/components/chat.js`: `initChat({ getSessionId, onError, onDone })` renders user/assistant bubbles, typing indicator during request, `ReadableStream` SSE parse (`delta`/`error`/`done`), `loadHistory`/`clearMessages`; message bubble styles in `style.css`; `tests/test_frontend/test_chat_js.py` | Session creation/book binding left to T37 |
 | 2026-04-07 | T35 | Added `static/js/components/references.js`: `initReferences` → `clear`, `setHighlightQuery`, `appendReferencedChunkIds` (uses `getBookChunks`), `appendReferenceEntry`; `<mark class="ref-highlight">` for query; `#clear-references` clears list only; chunk card styles in `style.css`; `tests/test_frontend/test_references_js.py` | Chunks HTTP route may 404 until implemented; fallback message shown |
+| 2026-04-07 | T36 | Added `#settings-dialog` / `#settings-form` in `index.html` (all Settings API fields), `static/js/components/settings.js` (`initSettings`: open loads `getSettings`, save `updateSettings`, reset `resetSettings`, test `testLlm`), layout styles in `style.css`; `tests/test_frontend/test_settings_js.py` + index structural test | Modal markup lives in HTML shell; `app.js` import deferred to T37 |
 
 ---
 
