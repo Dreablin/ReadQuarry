@@ -1,8 +1,10 @@
+from pathlib import Path
+
 from src.core.vector_store import VectorStore
 
 
 def test_vector_store_create_collection() -> None:
-    store = VectorStore()
+    store = VectorStore(persist_directory="data/chroma_test_create")
     name = "book_1"
     collection = store.create_collection(name)
     assert collection is not None
@@ -10,7 +12,7 @@ def test_vector_store_create_collection() -> None:
 
 
 def test_vector_store_add_and_query_documents() -> None:
-    store = VectorStore()
+    store = VectorStore(persist_directory="data/chroma_test_query")
     name = "book_2"
     store.create_collection(name)
     store.add_documents(
@@ -26,9 +28,23 @@ def test_vector_store_add_and_query_documents() -> None:
 
 
 def test_vector_store_delete_collection() -> None:
-    store = VectorStore()
+    store = VectorStore(persist_directory="data/chroma_test_delete")
     name = "book_3"
     store.create_collection(name)
     store.delete_collection(name)
     collections = [c.name for c in store.list_collections()]
     assert name not in collections
+
+
+def test_vector_store_delete_missing_collection_is_safe() -> None:
+    store = VectorStore(persist_directory="data/chroma_test_missing")
+    # Should not raise if called repeatedly for unknown collection.
+    store.delete_collection("does_not_exist")
+    store.delete_collection("does_not_exist")
+
+
+def test_vector_store_uses_custom_persist_directory(tmp_path: Path) -> None:
+    target = tmp_path / "custom_chroma"
+    store = VectorStore(persist_directory=str(target))
+    store.create_collection("book_custom")
+    assert target.exists()

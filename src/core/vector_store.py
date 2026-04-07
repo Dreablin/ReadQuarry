@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import chromadb
+from chromadb.errors import NotFoundError
 
 
 class VectorStore:
@@ -18,7 +19,11 @@ class VectorStore:
         return self.client.list_collections()
 
     def delete_collection(self, collection_name: str) -> None:
-        self.client.delete_collection(name=collection_name)
+        try:
+            self.client.delete_collection(name=collection_name)
+        except NotFoundError:
+            # Deleting an unknown collection should be idempotent for callers.
+            return
 
     def add_documents(
         self,
