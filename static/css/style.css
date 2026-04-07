@@ -393,6 +393,11 @@ dialog.dialog::backdrop {
   outline: none;
 }
 
+.upload-dropzone--active {
+  border-color: rgba(107, 76, 255, 0.85);
+  background: rgba(107, 76, 255, 0.12);
+}
+
 .upload-progress {
   margin-top: var(--space-md);
   height: 0.5rem;
