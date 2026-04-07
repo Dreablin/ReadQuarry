@@ -6,10 +6,10 @@
 
 ## Current Status
 
-**Phase**: 1 — Foundation  
-**Next Task**: T03  
-**Last Completed**: T02  
-**Total Progress**: 2 / 41 tasks  
+**Phase**: 2 — Book Ingestion Pipeline  
+**Next Task**: T04  
+**Last Completed**: T03  
+**Total Progress**: 3 / 41 tasks  
 
 ---
 
@@ -19,7 +19,7 @@
 
 - [x] **T01**: Project scaffolding — Create directory structure, `requirements.txt`, `main.py`, `config.py`, `.gitignore`
 - [x] **T02**: Database models — Implement SQLAlchemy models (Book, Paragraph, Chunk, ChatSession, ChatMessage, AppSettings) with `database.py` setup
-- [ ] **T03**: Database model tests — Write and pass tests for all CRUD operations, cascade deletes, constraints
+- [x] **T03**: Database model tests — Write and pass tests for all CRUD operations, cascade deletes, constraints
 
 ### Phase 2: Book Ingestion Pipeline
 
@@ -79,6 +79,7 @@
 |---|---|---|---|
 | 2026-04-07 | T01 | Added minimal scaffold test and initial app/config/requirements structure | Establishes a runnable baseline and validates required directories/files exist |
 | 2026-04-07 | T02 | Added SQLAlchemy declarative models and session setup in modular files | Matches PRD schema and prepares explicit CRUD/cascade testing in T03 |
+| 2026-04-07 | T03 | Added isolated in-memory SQLite model tests with FK enforcement for CRUD, cascade, and unique constraints | Locks database behavior before API/core layers build on it |
 
 ---
 
