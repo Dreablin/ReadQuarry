@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T22  
-**Last Completed**: T21  
-**Total Progress**: 21 / 41 tasks  
+**Next Task**: T23  
+**Last Completed**: T22  
+**Total Progress**: 22 / 41 tasks  
 
 ---
 
@@ -44,7 +44,7 @@
 - [x] **T19**: Books API — Implement upload, list, get, delete endpoints
 - [x] **T20**: Books API tests — Test all endpoints with valid/invalid inputs
 - [x] **T21**: Search API — Implement semantic, exact, and hybrid search endpoints
-- [ ] **T22**: Search API tests — Test all search endpoints
+- [x] **T22**: Search API tests — Test all search endpoints
 - [ ] **T23**: Settings API — Implement get, update, reset, test-llm endpoints
 - [ ] **T24**: Settings API tests — Test settings CRUD and validation
 - [ ] **T25**: LLM client — Implement unified LLM client (Ollama + OpenAI-compatible cloud)
@@ -98,6 +98,7 @@
 | 2026-04-07 | T19 | Implemented Books API endpoints (upload/list/get/delete) and integrated router into app startup | Establishes core book-management HTTP surface for upcoming API test expansion |
 | 2026-04-07 | T20 | Expanded Books API tests for invalid formats, missing IDs, and unsupported chunking strategies; enforced strategy validation in upload endpoint | Improves endpoint input safety and error semantics before search/chat API work |
 | 2026-04-07 | T21 | Implemented Search API endpoints for semantic, exact, and hybrid flows and wired router into app | Enables end-to-end query entry points for retrieval features |
+| 2026-04-07 | T22 | Expanded Search API tests for empty query and non-positive limit validation; enforced strict numeric bounds via request schemas | Hardens search endpoint contracts and prevents invalid retrieval parameters |
 
 ---
 

@@ -13,21 +13,21 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 class SemanticSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    top_k: int = 5
+    top_k: int = Field(default=5, gt=0)
 
 
 class ExactSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    max_results: int = 5
+    max_results: int = Field(default=5, gt=0)
 
 
 class HybridSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    semantic_k: int = 5
-    exact_k: int = 5
-    final_n: int = 7
+    semantic_k: int = Field(default=5, gt=0)
+    exact_k: int = Field(default=5, gt=0)
+    final_n: int = Field(default=7, gt=0)
 
 
 @router.post("/semantic")
