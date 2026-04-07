@@ -6,10 +6,10 @@
 
 ## Current Status
 
-**Phase**: 3 — API Layer  
-**Next Task**: T29  
-**Last Completed**: T28  
-**Total Progress**: 28 / 41 tasks  
+**Phase**: 4 — Frontend  
+**Next Task**: T30  
+**Last Completed**: T29  
+**Total Progress**: 29 / 41 tasks  
 
 ---
 
@@ -54,7 +54,7 @@
 
 ### Phase 4: Frontend
 
-- [ ] **T29**: HTML shell — Create `index.html` with split-panel layout, all sections, semantic HTML
+- [x] **T29**: HTML shell — Create `index.html` with split-panel layout, all sections, semantic HTML
 - [ ] **T30**: CSS design system — Create `style.css` with full dark theme, glassmorphism, variables, animations, responsive layout
 - [ ] **T31**: API client module — Create `api.js` with all API call wrappers
 - [ ] **T32**: Book upload component — Create `book-upload.js` with drag-drop, chunking selector, progress bar
@@ -105,6 +105,7 @@
 | 2026-04-07 | T26 | Expanded `test_llm_client` with mocked OpenAI: default models, trailing-slash base URL, stream and sampling kwargs passthrough, explicit overrides, and propagated provider errors | Locks LLM client contract without network calls |
 | 2026-04-07 | T27 | Added `src/api/chat.py`: SQLAlchemy-backed sessions/messages, hybrid RAG context (skipped when book has no chunks), `LLMClient` streaming, SSE `delta`/`done`/`error` events; lifespan `create_all` in `main.py` | Matches PRD chat routes and discuss flow; chat requires rows in SQLite `books` (upload API still in-memory until unified) |
 | 2026-04-07 | T28 | Expanded `test_chat_api`: validation/404s, multi-turn history order, SSE error stream, session list ordering; `list_sessions` tie-breaks with `id` desc when `created_at` ties | Stable ordering for rapid session creation |
+| 2026-04-07 | T29 | Added `static/index.html` (PRD layout: header with book/search/upload/settings, chat + references split `main`, status footer, upload `<dialog>`); `tests/test_frontend/test_index_html.py` structural tests | Styling deferred to T30 (`css/style.css` linked but not created yet) |
 
 ---
 

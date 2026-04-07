@@ -1,0 +1,71 @@
+"""Structural checks for the ReadQuarry HTML shell (static/index.html)."""
+
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+INDEX = ROOT / "static" / "index.html"
+
+
+@pytest.fixture(scope="module")
+def index_html() -> str:
+    return INDEX.read_text(encoding="utf-8")
+
+
+def test_index_html_exists() -> None:
+    assert INDEX.is_file(), "static/index.html must exist"
+
+
+def test_index_html_has_doctype_and_lang(index_html: str) -> None:
+    assert index_html.lstrip().upper().startswith("<!DOCTYPE HTML")
+    assert '<html lang="en"' in index_html
+
+
+def test_index_html_has_meta_viewport_and_title(index_html: str) -> None:
+    assert 'charset="utf-8"' in index_html or "charset=utf-8" in index_html
+    assert "viewport" in index_html
+    assert "<title>" in index_html and "ReadQuarry" in index_html
+
+
+def test_index_html_links_stylesheet(index_html: str) -> None:
+    assert 'href="css/style.css"' in index_html
+
+
+def test_index_html_semantic_regions(index_html: str) -> None:
+    assert "<header" in index_html
+    assert "<main" in index_html
+    assert "<footer" in index_html or '<footer ' in index_html
+
+
+def test_index_html_header_controls(index_html: str) -> None:
+    assert "book-select" in index_html or 'id="book-select"' in index_html
+    assert "search" in index_html.lower()
+    assert "settings" in index_html.lower()
+
+
+def test_index_html_split_panels(index_html: str) -> None:
+    assert "chat-panel" in index_html
+    assert "references-panel" in index_html
+
+
+def test_index_html_chat_composer_and_messages(index_html: str) -> None:
+    assert "chat-messages" in index_html
+    assert "message-input" in index_html or 'id="message-input"' in index_html
+    assert "send" in index_html.lower()
+
+
+def test_index_html_references_clear(index_html: str) -> None:
+    assert "references-list" in index_html
+    assert "clear-references" in index_html or 'id="clear-references"' in index_html
+
+
+def test_index_html_status_bar(index_html: str) -> None:
+    assert "status-bar" in index_html
+
+
+def test_index_html_upload_dialog_sections(index_html: str) -> None:
+    assert "upload-dialog" in index_html
+    assert "upload-dropzone" in index_html
+    assert "chunking-strategy" in index_html
+    assert "upload-progress" in index_html

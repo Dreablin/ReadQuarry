@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ReadQuarry</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header__brand">
+        <h1 class="app-title">ReadQuarry</h1>
+      </div>
+      <nav class="app-header__nav" aria-label="Main">
+        <label class="sr-only" for="book-select">Selected book</label>
+        <select id="book-select" name="book" aria-label="Book">
+          <option value="">Select a book…</option>
+        </select>
+        <button type="button" id="search-open" class="btn-search">Search</button>
+        <button type="button" id="upload-open" class="btn-upload">Upload Book</button>
+        <button type="button" id="settings-open" class="btn-settings">Settings</button>
+      </nav>
+    </header>
+
+    <main class="app-main" id="app-main">
+      <section
+        class="panel panel--chat"
+        id="chat-panel"
+        aria-labelledby="chat-heading"
+      >
+        <h2 id="chat-heading" class="panel__title">Discussion</h2>
+        <div
+          id="chat-messages"
+          class="chat-messages"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+        ></div>
+        <form id="chat-form" class="chat-form" action="#" method="dialog">
+          <label class="sr-only" for="message-input">Message</label>
+          <textarea
+            id="message-input"
+            name="message"
+            rows="3"
+            placeholder="Type a message…"
+            autocomplete="off"
+          ></textarea>
+          <button type="submit" id="send-button" class="btn-send">Send</button>
+        </form>
+      </section>
+
+      <aside
+        class="panel panel--references"
+        id="references-panel"
+        aria-labelledby="references-heading"
+      >
+        <h2 id="references-heading" class="panel__title">References</h2>
+        <div id="references-list" class="references-list"></div>
+        <button type="button" id="clear-references" class="btn-clear">
+          Clear references
+        </button>
+      </aside>
+    </main>
+
+    <footer class="app-footer">
+      <p id="status-bar" class="status-bar" role="status">Ready</p>
+    </footer>
+
+    <dialog id="upload-dialog" class="dialog dialog--upload" aria-labelledby="upload-title">
+      <form id="upload-form" method="dialog">
+        <h2 id="upload-title">Upload a book</h2>
+        <div
+          id="upload-dropzone"
+          class="upload-dropzone"
+          role="button"
+          tabindex="0"
+          aria-label="Drop EPUB file here or click to browse"
+        >
+          <p>Drag and drop an EPUB here, or click to browse.</p>
+          <input type="file" id="upload-file" accept=".epub,application/epub+zip" hidden />
+        </div>
+        <label for="chunking-strategy">Chunking strategy</label>
+        <select id="chunking-strategy" name="chunking_strategy">
+          <option value="paragraph">Paragraph</option>
+          <option value="sentence">Sentence</option>
+          <option value="fixed-size">Fixed size</option>
+          <option value="chapter-aware-recursive">Chapter-aware (recursive)</option>
+        </select>
+        <div id="upload-progress" class="upload-progress" aria-hidden="true">
+          <div class="upload-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <div class="dialog__actions">
+          <button type="button" id="upload-cancel" value="cancel">Cancel</button>
+          <button type="submit" id="upload-submit">Upload</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
