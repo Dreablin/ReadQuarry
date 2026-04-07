@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 2 — Book Ingestion Pipeline  
-**Next Task**: T14  
-**Last Completed**: T13  
-**Total Progress**: 13 / 41 tasks  
+**Next Task**: T15  
+**Last Completed**: T14  
+**Total Progress**: 14 / 41 tasks  
 
 ---
 
@@ -33,7 +33,7 @@
 - [x] **T11**: Vector store service — Implement ChromaDB wrapper (create/query/delete collections)
 - [x] **T12**: Vector store tests — Test CRUD operations, similarity queries, collection management
 - [x] **T13**: Search engine service — Implement Tantivy wrapper (index/search/delete)
-- [ ] **T14**: Search engine tests — Test indexing, word search, phrase search, case-insensitive matching
+- [x] **T14**: Search engine tests — Test indexing, word search, phrase search, case-insensitive matching
 - [ ] **T15**: Hybrid search — Implement `HybridSearch` combining semantic + exact results with deduplication and ranking
 - [ ] **T16**: Hybrid search tests — Test merging, deduplication, ranking with various combinations
 - [ ] **T17**: Book processor — Implement `BookProcessor` orchestrating the full pipeline (parse → split → chunk → embed → index)
@@ -90,6 +90,7 @@
 | 2026-04-07 | T11 | Implemented `VectorStore` ChromaDB wrapper with collection lifecycle, add, and query APIs | Establishes persistence and similarity retrieval foundation for hybrid search |
 | 2026-04-07 | T12 | Expanded vector store tests for CRUD, similarity query behavior, custom persistence paths, and idempotent missing-collection deletion | Verifies robust collection management semantics before search integration |
 | 2026-04-07 | T13 | Added `SearchEngine` wrapper with index/add/search/delete behavior and case-insensitive exact matching | Establishes full-text retrieval interface needed before dedicated search behavior tests |
+| 2026-04-07 | T14 | Added dedicated search-engine tests for indexing, case-insensitive terms, quoted phrase matching, and simple relevance ranking | Validates full-text behavior expectations before hybrid search composition |
 
 ---
 

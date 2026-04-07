@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+import re
 
 
 class SearchEngine:
@@ -27,8 +28,22 @@ class SearchEngine:
         query_lower = query.strip().lower()
         if not query_lower:
             return []
-        matched = [doc for doc in self._documents if query_lower in doc["text"].lower()]
-        return matched[:max_results]
+
+        phrase_match = re.fullmatch(r'"(.+)"', query_lower)
+        if phrase_match:
+            phrase = phrase_match.group(1)
+            matched = [doc for doc in self._documents if phrase in doc["text"].lower()]
+            return matched[:max_results]
+
+        terms = [t for t in re.split(r"\s+", query_lower) if t]
+        scored: list[tuple[int, dict]] = []
+        for doc in self._documents:
+            text = doc["text"].lower()
+            score = sum(text.count(term) for term in terms)
+            if score > 0:
+                scored.append((score, doc))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [doc for _, doc in scored[:max_results]]
 
     def delete_index(self) -> None:
         self._documents = []
