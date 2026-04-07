@@ -6,10 +6,10 @@
 
 ## Current Status
 
-**Phase**: 4 — Frontend  
-**Next Task**: T38  
-**Last Completed**: T37  
-**Total Progress**: 37 / 41 tasks  
+**Phase**: 5 — Polish & Startup  
+**Next Task**: T39  
+**Last Completed**: T38  
+**Total Progress**: 38 / 41 tasks  
 
 ---
 
@@ -63,7 +63,7 @@
 - [x] **T35**: References panel component — Create `references.js` with chunk display, highlighting, clear button
 - [x] **T36**: Settings component — Create `settings.js` with the settings modal/form
 - [x] **T37**: App controller — Create `app.js` wiring all components together, routing between views
-- [ ] **T38**: Static file serving — Configure FastAPI to serve static files and the SPA
+- [x] **T38**: Static file serving — Configure FastAPI to serve static files and the SPA
 
 ### Phase 5: Polish & Startup
 
@@ -114,6 +114,7 @@
 | 2026-04-07 | T35 | Added `static/js/components/references.js`: `initReferences` → `clear`, `setHighlightQuery`, `appendReferencedChunkIds` (uses `getBookChunks`), `appendReferenceEntry`; `<mark class="ref-highlight">` for query; `#clear-references` clears list only; chunk card styles in `style.css`; `tests/test_frontend/test_references_js.py` | Chunks HTTP route may 404 until implemented; fallback message shown |
 | 2026-04-07 | T36 | Added `#settings-dialog` / `#settings-form` in `index.html` (all Settings API fields), `static/js/components/settings.js` (`initSettings`: open loads `getSettings`, save `updateSettings`, reset `resetSettings`, test `testLlm`), layout styles in `style.css`; `tests/test_frontend/test_settings_js.py` + index structural test | Modal markup lives in HTML shell; `app.js` import deferred to T37 |
 | 2026-04-07 | T37 | Added `static/js/app.js` (`initApp`): book list + `ensureSession` (`listChatSessions` or `createChatSession`), chat with `onDone` → references; upload `onSuccess` → `refresh`; `#view-search` in `index.html` with hybrid `searchHybrid` results; `data-view` discuss/search toggles chat+refs vs search panel; `<script type="module" src="js/app.js">`; `tests/test_frontend/test_app_js.py` | Search results render in `#search-results`; references highlight query set for consistency |
+| 2026-04-07 | T38 | `config.settings.static_dir` → repo `static/`; `main.py` mounts `StaticFiles(..., html=True)` at `/` after API routers and `/health`; `tests/test_api/test_static_serving.py` checks `/`, `/css/style.css`, `/js/app.js`, and that `/api/settings` + `/health` still work | Mount registered last so API routes take precedence; `html=True` serves `index.html` at `/` |
 
 ---
 

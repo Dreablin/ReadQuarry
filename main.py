@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from src.api.books import router as books_router
@@ -30,6 +31,13 @@ app.include_router(chat_router)
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.mount(
+    "/",
+    StaticFiles(directory=str(settings.static_dir), html=True),
+    name="spa",
+)
 
 
 if __name__ == "__main__":
