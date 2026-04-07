@@ -33,6 +33,7 @@ def test_required_directories_exist() -> None:
         "tests/test_parsers",
         "tests/test_core",
         "tests/test_api",
+        "tests/test_e2e",
         "tests/test_models",
         "data",
         "data/chroma",
