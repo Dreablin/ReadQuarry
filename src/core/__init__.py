@@ -8,6 +8,7 @@ from src.core.chunking import (
 from src.core.book_processor import BookProcessor
 from src.core.embeddings import EmbeddingService
 from src.core.hybrid_search import HybridSearch
+from src.core.llm_client import LLMClient
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 
@@ -18,6 +19,7 @@ __all__ = [
     "EmbeddingService",
     "FixedSizeChunking",
     "HybridSearch",
+    "LLMClient",
     "ParagraphChunking",
     "SearchEngine",
     "SentenceChunking",
