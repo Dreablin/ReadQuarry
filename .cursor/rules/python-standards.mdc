@@ -1,0 +1,29 @@
+---
+description: "Python coding standards — type hints, docstrings, architecture patterns"
+globs: ["src/**/*.py", "tests/**/*.py", "main.py", "config.py"]
+alwaysApply: false
+---
+
+# Python Coding Standards
+
+## Code Quality
+- Type hints on all function signatures and class attributes.
+- Google-style docstrings on all public classes and functions.
+- No `print()` — use `logging` module.
+- No hardcoded paths — use `config.py`.
+- Catch specific exceptions, provide user-friendly messages.
+- Async for all FastAPI endpoints.
+
+## Architecture
+- Follow project structure in `PRD.md` section 2.4.
+- Absolute imports only: `from src.core.chunking import ...`.
+- One responsibility per module.
+- FastAPI dependency injection via `Depends()`.
+
+## Testing
+- Test files mirror source: `src/core/foo.py` → `tests/test_core/test_foo.py`.
+- Shared fixtures in `conftest.py` (temp dirs, test DB).
+- Temp directories for file I/O — no permanent side effects.
+- Mock LLM calls; real model for embedding tests with minimal data.
+- One assertion/behavior per test function.
+- Descriptive test names: `test_paragraph_chunking_produces_correct_overlap`.

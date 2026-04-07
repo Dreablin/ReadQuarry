@@ -1,0 +1,26 @@
+---
+description: "Frontend coding standards — vanilla HTML, CSS, JS conventions"
+globs: ["static/**/*.js", "static/**/*.css", "static/**/*.html"]
+alwaysApply: false
+---
+
+# Frontend Standards
+
+## HTML
+- Semantic HTML5 elements.
+- Single `<h1>` per page.
+- All interactive elements need unique, descriptive IDs.
+
+## CSS
+- CSS custom properties (variables) for theming.
+- Dark theme, glassmorphism, smooth gradients.
+- Micro-animations for interactions.
+- Responsive: panels stack vertically on narrow viewports.
+- No frameworks — vanilla CSS only.
+
+## JavaScript
+- ES modules (`type="module"` in script tags).
+- `fetch()` for API calls.
+- `EventSource` for SSE streaming.
+- No build tools, no frameworks.
+- JSDoc comments on all public functions.

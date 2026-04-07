@@ -1,0 +1,9 @@
+{
+  "plugins": {
+    "cursor-plugins/ralph-loop": {
+      "enabled": true,
+      "gitUrl": "https://github.com/cursor/plugins",
+      "gitRef": "main"
+    }
+  }
+}
