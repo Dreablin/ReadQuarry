@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 4 — Frontend  
-**Next Task**: T30  
-**Last Completed**: T29  
-**Total Progress**: 29 / 41 tasks  
+**Next Task**: T31  
+**Last Completed**: T30  
+**Total Progress**: 30 / 41 tasks  
 
 ---
 
@@ -55,7 +55,7 @@
 ### Phase 4: Frontend
 
 - [x] **T29**: HTML shell — Create `index.html` with split-panel layout, all sections, semantic HTML
-- [ ] **T30**: CSS design system — Create `style.css` with full dark theme, glassmorphism, variables, animations, responsive layout
+- [x] **T30**: CSS design system — Create `style.css` with full dark theme, glassmorphism, variables, animations, responsive layout
 - [ ] **T31**: API client module — Create `api.js` with all API call wrappers
 - [ ] **T32**: Book upload component — Create `book-upload.js` with drag-drop, chunking selector, progress bar
 - [ ] **T33**: Book list component — Create `book-list.js` with dropdown selector
@@ -106,6 +106,7 @@
 | 2026-04-07 | T27 | Added `src/api/chat.py`: SQLAlchemy-backed sessions/messages, hybrid RAG context (skipped when book has no chunks), `LLMClient` streaming, SSE `delta`/`done`/`error` events; lifespan `create_all` in `main.py` | Matches PRD chat routes and discuss flow; chat requires rows in SQLite `books` (upload API still in-memory until unified) |
 | 2026-04-07 | T28 | Expanded `test_chat_api`: validation/404s, multi-turn history order, SSE error stream, session list ordering; `list_sessions` tie-breaks with `id` desc when `created_at` ties | Stable ordering for rapid session creation |
 | 2026-04-07 | T29 | Added `static/index.html` (PRD layout: header with book/search/upload/settings, chat + references split `main`, status footer, upload `<dialog>`); `tests/test_frontend/test_index_html.py` structural tests | Styling deferred to T30 (`css/style.css` linked but not created yet) |
+| 2026-04-07 | T30 | Added `static/css/style.css`: `:root` tokens, dark layered background, glass panels (`backdrop-filter`), purple→teal gradients, Inter via Google Fonts, message/typing keyframes, nav/button transitions, stacked layout `@media (max-width: 900px)`; `tests/test_frontend/test_style_css.py` | Matches PRD F-UI-02; utility classes for future JS (`.message`, `.typing-indicator`) included |
 
 ---
 
