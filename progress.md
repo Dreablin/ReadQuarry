@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T21  
-**Last Completed**: T20  
-**Total Progress**: 20 / 41 tasks  
+**Next Task**: T22  
+**Last Completed**: T21  
+**Total Progress**: 21 / 41 tasks  
 
 ---
 
@@ -43,7 +43,7 @@
 
 - [x] **T19**: Books API — Implement upload, list, get, delete endpoints
 - [x] **T20**: Books API tests — Test all endpoints with valid/invalid inputs
-- [ ] **T21**: Search API — Implement semantic, exact, and hybrid search endpoints
+- [x] **T21**: Search API — Implement semantic, exact, and hybrid search endpoints
 - [ ] **T22**: Search API tests — Test all search endpoints
 - [ ] **T23**: Settings API — Implement get, update, reset, test-llm endpoints
 - [ ] **T24**: Settings API tests — Test settings CRUD and validation
@@ -97,6 +97,7 @@
 | 2026-04-07 | T18 | Added book-processor integration coverage with real service components and empty-content guard behavior | Validates full ingestion pipeline wiring and stabilizes no-chunk edge handling |
 | 2026-04-07 | T19 | Implemented Books API endpoints (upload/list/get/delete) and integrated router into app startup | Establishes core book-management HTTP surface for upcoming API test expansion |
 | 2026-04-07 | T20 | Expanded Books API tests for invalid formats, missing IDs, and unsupported chunking strategies; enforced strategy validation in upload endpoint | Improves endpoint input safety and error semantics before search/chat API work |
+| 2026-04-07 | T21 | Implemented Search API endpoints for semantic, exact, and hybrid flows and wired router into app | Enables end-to-end query entry points for retrieval features |
 
 ---
 
