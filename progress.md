@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T24  
-**Last Completed**: T23  
-**Total Progress**: 23 / 41 tasks  
+**Next Task**: T25  
+**Last Completed**: T24  
+**Total Progress**: 24 / 41 tasks  
 
 ---
 
@@ -46,7 +46,7 @@
 - [x] **T21**: Search API — Implement semantic, exact, and hybrid search endpoints
 - [x] **T22**: Search API tests — Test all search endpoints
 - [x] **T23**: Settings API — Implement get, update, reset, test-llm endpoints
-- [ ] **T24**: Settings API tests — Test settings CRUD and validation
+- [x] **T24**: Settings API tests — Test settings CRUD and validation
 - [ ] **T25**: LLM client — Implement unified LLM client (Ollama + OpenAI-compatible cloud)
 - [ ] **T26**: LLM client tests — Test client initialization, request formatting, error handling (use mocks)
 - [ ] **T27**: Chat API — Implement session management and message endpoint with SSE streaming
@@ -100,6 +100,7 @@
 | 2026-04-07 | T21 | Implemented Search API endpoints for semantic, exact, and hybrid flows and wired router into app | Enables end-to-end query entry points for retrieval features |
 | 2026-04-07 | T22 | Expanded Search API tests for empty query and non-positive limit validation; enforced strict numeric bounds via request schemas | Hardens search endpoint contracts and prevents invalid retrieval parameters |
 | 2026-04-07 | T23 | Implemented Settings API endpoints (get/update/reset/test-llm) with validation for cloud mode API key requirement | Provides settings management surface for LLM/search configuration |
+| 2026-04-07 | T24 | Expanded Settings API tests for enum/range validation, partial updates, and http(s) URL checks on Ollama/cloud base URLs | Aligns API behavior with PRD validation expectations |
 
 ---
 

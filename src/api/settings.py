@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -45,6 +47,17 @@ class SettingsUpdate(BaseModel):
     semantic_top_k: int | None = Field(default=None, gt=0)
     exact_results: int | None = Field(default=None, gt=0)
     final_context_chunks: int | None = Field(default=None, gt=0)
+
+    @field_validator("ollama_base_url", "api_base_url", mode="before")
+    @classmethod
+    def validate_http_urls(cls, value: object) -> object:
+        if value is None or value == "":
+            return value
+        text = str(value).strip()
+        parsed = urlparse(text)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("Must be a valid http(s) URL with host")
+        return text
 
     @model_validator(mode="after")
     def validate_cloud_requires_key(self):
