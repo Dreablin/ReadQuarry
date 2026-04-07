@@ -15,6 +15,9 @@ _NEXT_ID = 1
 @router.post("/upload")
 async def upload_book(file: UploadFile = File(...), chunking_strategy: str = Form("paragraph")) -> dict:
     global _NEXT_ID
+    allowed_strategies = {"paragraph", "sentence", "fixed-size", "chapter-aware-recursive"}
+    if chunking_strategy not in allowed_strategies:
+        raise HTTPException(status_code=400, detail="Unsupported chunking strategy")
     if not file.filename or not file.filename.lower().endswith(".epub"):
         raise HTTPException(status_code=400, detail="Only EPUB files are supported")
 
