@@ -2,9 +2,11 @@ from fastapi import FastAPI
 import uvicorn
 
 from config import settings
+from src.api.books import router as books_router
 
 
 app = FastAPI(title=settings.app_name)
+app.include_router(books_router)
 
 
 @app.get("/health")

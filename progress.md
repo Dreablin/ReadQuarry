@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 3 — API Layer  
-**Next Task**: T19  
-**Last Completed**: T18  
-**Total Progress**: 18 / 41 tasks  
+**Next Task**: T20  
+**Last Completed**: T19  
+**Total Progress**: 19 / 41 tasks  
 
 ---
 
@@ -41,7 +41,7 @@
 
 ### Phase 3: API Layer
 
-- [ ] **T19**: Books API — Implement upload, list, get, delete endpoints
+- [x] **T19**: Books API — Implement upload, list, get, delete endpoints
 - [ ] **T20**: Books API tests — Test all endpoints with valid/invalid inputs
 - [ ] **T21**: Search API — Implement semantic, exact, and hybrid search endpoints
 - [ ] **T22**: Search API tests — Test all search endpoints
@@ -95,6 +95,7 @@
 | 2026-04-07 | T16 | Expanded hybrid-search tests for empty inputs, tie-break ordering, and repeated exact-hit aggregation | Strengthens result-merging guarantees before book-processor integration |
 | 2026-04-07 | T17 | Implemented `BookProcessor` orchestration flow connecting parser selection, chunking, embedding generation, vector persistence, and exact index population | Provides the core end-to-end ingestion execution path |
 | 2026-04-07 | T18 | Added book-processor integration coverage with real service components and empty-content guard behavior | Validates full ingestion pipeline wiring and stabilizes no-chunk edge handling |
+| 2026-04-07 | T19 | Implemented Books API endpoints (upload/list/get/delete) and integrated router into app startup | Establishes core book-management HTTP surface for upcoming API test expansion |
 
 ---
 
