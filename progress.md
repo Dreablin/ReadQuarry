@@ -8,9 +8,9 @@
 ## Current Status
 
 **Phase**: Bugfixes
-**Next Task**: B06
-**Last Completed**: B05
-**Total Progress**: 5 / 8 tasks
+**Next Task**: B07
+**Last Completed**: B06
+**Total Progress**: 6 / 8 tasks
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] **B02**: EmbeddingService random vectors bug — In `src/core/embeddings.py`, remove silent `_fallback_embed` random noise fallback in production to ensure proper ImportError when models are missing.
 - [x] **B03**: Missing Chunk rows in SQLite breaking RAG context — In `BookProcessor.process_book`, bulk insert SQLAlchemy `Chunk` models into the database so they can be joined and checked during chat completion.
 - [x] **B04**: Empty SSE LLM streams — Add detailed debugging in `chat.py` and ensure the frontend renders empty streams with an explicit "[Empty]" log to trace Ollama empty response bugs.
-- [ ] **B06**: EpubParser destroying paragraph chunking — Update `src/parsers/epub_parser.py`'s `clean_html` to use `separator="\n\n"` instead of `" "`, preserving line breaks so `ParagraphChunking` can find paragraphs.
+- [x] **B06**: EpubParser destroying paragraph chunking — Update `src/parsers/epub_parser.py`'s `clean_html` to use `separator="\n\n"` instead of `" "`, preserving line breaks so `ParagraphChunking` can find paragraphs.
 
 ### Phase 7: UI & Path Fixes
 
@@ -41,6 +41,7 @@
 | 2026-04-08 | B03 | `process_book(..., db=)` inserts `Chunk` rows + flush; Chroma/SearchEngine ids = `str(chunk.id)` for `chat.py` lookup | BUGS.md B03 |
 | 2026-04-08 | B04 | `logger.debug` per chunk/delta; empty/whitespace-only stream → placeholder delta + `warning`; `chat.js` `console.warn` on bad SSE JSON; `typeof ev.content === "string"` | BUGS.md B04 |
 | 2026-04-08 | B05 | Hybrid defaults: semantic 15, exact 15, final 20; `le=50` on search k fields; Search panel `#search-max-results` drives `semantic_k`/`exact_k`/`final_n` | BUGS.md B05 |
+| 2026-04-08 | B06 | `clean_html`: extract `p`/headings/`li` with spaced inline text, join with `\n\n`; fallback `get_text(\n\n)` + merge | BUGS.md B06 — ParagraphChunking |
 
 ---
 

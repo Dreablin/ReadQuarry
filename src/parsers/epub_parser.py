@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -14,9 +15,27 @@ class EpubParser(BaseParser):
         return [".epub"]
 
     def clean_html(self, html: str) -> str:
+        """Strip tags while keeping paragraph-sized breaks for chunking strategies.
+
+        Pull text from block-level tags (``p``, headings, ``li``) so inline markup
+        like ``<b>`` does not insert fake paragraph breaks. If none match, fall
+        back to full-document extraction with double-newline separators.
+        """
         soup = BeautifulSoup(html, "html.parser")
-        text = soup.get_text(separator=" ", strip=True)
-        return " ".join(text.split())
+        blocks: list[str] = []
+        for tag in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]):
+            piece = " ".join(tag.get_text(separator=" ", strip=True).split())
+            if piece:
+                blocks.append(piece)
+        if blocks:
+            return "\n\n".join(blocks)
+        text = soup.get_text(separator="\n\n", strip=True)
+        merged: list[str] = []
+        for block in re.split(r"\n\s*\n+", text):
+            line = " ".join(block.split())
+            if line:
+                merged.append(line)
+        return "\n\n".join(merged)
 
     def parse_book_content(
         self,
