@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 
+import pytest
 from ebooklib import epub
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -48,6 +50,26 @@ def _make_memory_session() -> Session:
 
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, future=True)()
+
+
+def test_books_upload_logs_save_path_and_book_id(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
+    """B11: upload endpoint logs destination path and book id for the log viewer."""
+    caplog.set_level(logging.INFO, logger="src.api.books")
+    client = TestClient(app)
+    sample = tmp_path / "logged.epub"
+    _write_minimal_epub(sample, unique_token=uuid.uuid4().hex)
+    with sample.open("rb") as f:
+        response = client.post(
+            "/api/books/upload",
+            files={"file": ("logged.epub", f, "application/epub+zip")},
+            data={"chunking_strategy": "paragraph"},
+        )
+    assert response.status_code == 200
+    book_id = response.json()["id"]
+    books_logs = [r for r in caplog.records if r.name == "src.api.books"]
+    text = " ".join(r.getMessage() for r in books_logs)
+    assert str(book_id) in text
+    assert "uploads" in text.replace("\\", "/").lower() or "Saving" in text
 
 
 def test_books_api_upload_list_get_delete(tmp_path: Path) -> None:

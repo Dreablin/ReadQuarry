@@ -1,3 +1,8 @@
+import logging
+from pathlib import Path
+
+import pytest
+
 from src.core.book_processor import BookProcessor
 from src.parsers.base import ParsedBook, ParsedChapter
 
@@ -34,9 +39,31 @@ class DummyVectorStore:
 class DummySearchEngine:
     def __init__(self) -> None:
         self.indexed = None
+        self.index_dir = Path("dummy_tantivy_index")
 
     def index_documents(self, docs: list[dict]) -> None:
         self.indexed = docs
+
+
+def test_book_processor_logs_ingestion_pipeline_stages(caplog: pytest.LogCaptureFixture) -> None:
+    """B11: ingestion logs parser, chapters, chunks, ChromaDB, SearchEngine index, timing."""
+    caplog.set_level(logging.INFO, logger="src.core.book_processor")
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=42, chunking_strategy="paragraph")
+    text = " ".join(r.getMessage() for r in caplog.records)
+    assert "book_id=42" in text
+    assert "chapters=" in text or "chapter" in text.lower()
+    assert "chunk" in text.lower()
+    assert "ChromaDB" in text or "collection=book_42" in text
+    assert "SearchEngine" in text or "index path" in text.lower()
+    assert "elapsed" in text.lower() or "seconds" in text.lower()
 
 
 def test_book_processor_runs_full_pipeline() -> None:

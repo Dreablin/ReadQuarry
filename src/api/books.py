@@ -78,9 +78,24 @@ async def upload_book(
     uploads_dir = settings.data_dir / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
     destination = uploads_dir / f"{book_id}_{file.filename}"
+    logger.info(
+        "Saving upload book_id=%s path=%s size_bytes=%d filename=%r",
+        book_id,
+        str(destination),
+        len(content),
+        file.filename,
+    )
     destination.write_bytes(content)
+    logger.info("Saved EPUB to disk book_id=%s path=%s", book_id, str(destination))
 
     app_settings = get_settings()
+    logger.info(
+        "Starting book processing book_id=%s chunking_strategy=%s chroma_dir=%s index_parent=%s",
+        book_id,
+        chunking_strategy,
+        str(settings.data_dir / "chroma"),
+        str(settings.data_dir / "tantivy_index"),
+    )
     processor = BookProcessor(
         parser_registry=_parser_registry(),
         embedding_service=EmbeddingService(
@@ -94,6 +109,12 @@ async def upload_book(
     )
     try:
         result = processor.process_book(str(destination), book_id, chunking_strategy)
+        logger.info(
+            "Upload pipeline succeeded book_id=%s total_chunks=%s title=%r",
+            book_id,
+            result.get("total_chunks"),
+            result.get("book_title"),
+        )
     except Exception:
         logger.exception("Book processing failed for book_id=%s", book_id)
         destination.unlink(missing_ok=True)
