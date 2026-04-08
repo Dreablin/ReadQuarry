@@ -68,6 +68,28 @@ def test_search_engine_russian_multiword_ranks_higher_match(tmp_path: Path) -> N
     assert results[1]["chunk_id"] == "2"
 
 
+def test_search_engine_search_includes_score_for_hybrid_merge(tmp_path: Path) -> None:
+    """B01: exact hits must carry score so HybridSearch does not treat them as 0.0."""
+    engine = SearchEngine(index_dir=str(tmp_path / "score_b01"))
+    engine.index_documents(
+        [
+            {"chunk_id": "1", "text": "rabbit rabbit rabbit", "chapter": "1", "chunk_index": 0},
+            {"chunk_id": "2", "text": "rabbit", "chapter": "1", "chunk_index": 1},
+        ]
+    )
+    results = engine.search("rabbit", max_results=2)
+    assert len(results) == 2
+    for row in results:
+        assert "score" in row
+        assert isinstance(row["score"], (int, float))
+        assert float(row["score"]) > 0.0
+    assert results[0]["score"] >= results[1]["score"]
+
+    phrase = engine.search('"rabbit"', max_results=1)
+    assert len(phrase) == 1
+    assert phrase[0]["score"] > 0.0
+
+
 def test_search_engine_word_search_returns_ranked_subset(tmp_path: Path) -> None:
     engine = SearchEngine(index_dir=str(tmp_path / "rank"))
     engine.index_documents(
