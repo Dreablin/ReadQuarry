@@ -38,3 +38,4 @@ coverage.xml
 # .cache/
 
 .cursor/ralph/
+ralph_prepare_instructions.txt
