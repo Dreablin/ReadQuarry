@@ -46,6 +46,11 @@ def test_style_css_animations(style_css: str) -> None:
     assert "@keyframes" in style_css.lower()
 
 
+def test_style_css_no_idle_header_shimmer_gpu_loop(style_css: str) -> None:
+    """B04: infinite filter-based header animation forces continuous GPU work when idle."""
+    assert "header-shimmer" not in style_css
+
+
 def test_style_css_responsive_stack(style_css: str) -> None:
     assert "@media" in style_css.lower()
     assert "max-width" in style_css.lower()

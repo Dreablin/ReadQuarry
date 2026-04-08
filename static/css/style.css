@@ -83,17 +83,6 @@ body {
   );
   backdrop-filter: blur(var(--blur-glass));
   -webkit-backdrop-filter: blur(var(--blur-glass));
-  animation: header-shimmer 8s ease-in-out infinite;
-}
-
-@keyframes header-shimmer {
-  0%,
-  100% {
-    filter: saturate(1);
-  }
-  50% {
-    filter: saturate(1.15);
-  }
 }
 
 .app-title {

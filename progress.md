@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 6 — Bug Fixes
-**Next Task**: B04
-**Last Completed**: B03
-**Total Progress**: 3 / 12 tasks
+**Next Task**: B05
+**Last Completed**: B04
+**Total Progress**: 4 / 12 tasks
 
 ---
 
@@ -20,7 +20,7 @@
 - [x] **B01**: Unify book storage — move from in-memory dict to SQLAlchemy DB so chat sessions can find uploaded books — see BUGS.md B01
 - [x] **B02**: Wire semantic search to real EmbeddingService + VectorStore instead of placeholder — see BUGS.md B02
 - [x] **B03**: Persist settings to JSON file on disk so they survive restarts — see BUGS.md B03
-- [ ] **B04**: Fix GPU idle load caused by infinite CSS header-shimmer animation — see BUGS.md B04
+- [x] **B04**: Fix GPU idle load caused by infinite CSS header-shimmer animation — see BUGS.md B04
 - [ ] **B05**: Add multi-language support (Russian + English) for embeddings, search, and chunking — see BUGS.md B05
 - [ ] **B06**: Split LLM settings into Ollama/Cloud groups with dropdown selector and conditional field visibility — see BUGS.md B06
 - [ ] **B07**: Reorganize settings dialog into tabbed layout (LLM / Embeddings & Search) — see BUGS.md B07
@@ -39,6 +39,7 @@
 | 2026-04-07 | B01 | Persist `SearchEngine` docs to `documents.json` under per-book index dir; align search API with `settings.data_dir` | Exact search must see chunks after upload when a new `SearchEngine` instance is constructed per request |
 | 2026-04-07 | B02 | Map Chroma distances to `score = 1/(1+dist)` for hybrid merge (higher is better) | Aligns with `HybridSearch.merge_results` summing scores |
 | 2026-04-07 | B03 | Persist to `{data_dir}/settings.json`; load known keys on import; `PUT`/`reset` sync disk | Matches BUGS.md; corrupt JSON logs warning and keeps defaults |
+| 2026-04-07 | B04 | Remove `header-shimmer` animation and `@keyframes`; regression test forbids the string in `style.css` | Infinite filter animation on `.app-header` caused continuous GPU compositing when idle |
 
 ---
 
