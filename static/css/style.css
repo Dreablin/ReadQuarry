@@ -275,6 +275,11 @@ body {
   min-height: 0;
 }
 
+/* B17: beats .panel / .panel--search display:flex so main views can hide reliably */
+.view--hidden {
+  display: none !important;
+}
+
 .panel {
   display: flex;
   flex-direction: column;

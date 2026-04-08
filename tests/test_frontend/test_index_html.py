@@ -1,5 +1,6 @@
 """Structural checks for the ReadQuarry HTML shell (static/index.html)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -58,6 +59,18 @@ def test_index_html_logs_view_panel(index_html: str) -> None:
     assert "main-nav-logs" in index_html
     assert "view-logs" in index_html
     assert "log-viewer-output" in index_html
+
+
+def test_index_html_main_views_use_view_hidden_not_broken_hidden_attr(index_html: str) -> None:
+    """B17: Search/Logs panels use .view--hidden (not HTML hidden) so CSS display:flex cannot override."""
+    assert 'class="panel panel--search view--hidden"' in index_html
+    assert 'class="panel panel--logs view--hidden"' in index_html
+    for vid in ("view-search", "view-logs"):
+        m = re.search(rf"<section[\s\S]*?id=\"{vid}\"[\s\S]*?>", index_html)
+        assert m is not None, vid
+        tag_open = m.group(0)
+        assert "view--hidden" in tag_open
+        assert "hidden" not in tag_open.replace("view--hidden", "")
 
 
 def test_index_html_split_panels(index_html: str) -> None:

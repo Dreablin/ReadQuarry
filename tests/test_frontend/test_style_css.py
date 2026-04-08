@@ -84,6 +84,16 @@ def test_style_css_logs_view_panel(style_css: str) -> None:
     assert "log-viewer" in style_css
 
 
+def test_style_css_view_hidden_beats_panel_display(style_css: str) -> None:
+    """B17: Utility class hides panels even when .panel sets display:flex."""
+    assert ".view--hidden" in style_css
+    assert "important" in style_css.lower()
+    idx = style_css.lower().find(".view--hidden")
+    assert idx != -1
+    snippet = style_css[idx : idx + 120].lower()
+    assert "display" in snippet and "none" in snippet
+
+
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
     for cls in (
         ".app-header",
