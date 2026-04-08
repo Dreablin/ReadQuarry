@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 import time
 
+from sqlalchemy.orm import Session
+
 from src.core.chunking import (
     ChapterAwareRecursiveChunking,
     FixedSizeChunking,
     ParagraphChunking,
     SentenceChunking,
 )
+from src.models.chunk import Chunk
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,19 @@ class BookProcessor:
         }
         return mapping.get(strategy, ParagraphChunking())
 
-    def process_book(self, file_path: str, book_id: int, chunking_strategy: str = "paragraph") -> dict:
+    def process_book(
+        self,
+        file_path: str,
+        book_id: int,
+        chunking_strategy: str = "paragraph",
+        db: Session | None = None,
+    ) -> dict:
+        """Parse, chunk, embed, and index a book.
+
+        When ``db`` is provided, inserts one ``Chunk`` row per chunk before vector
+        and index storage so RAG can resolve Chroma ids to SQLite text. Chroma and
+        SearchEngine ids are set to ``str(chunk.id)``.
+        """
         t0 = time.perf_counter()
         logger.info(
             "Ingestion start book_id=%s file_path=%s chunking_strategy=%s",
@@ -73,7 +88,25 @@ class BookProcessor:
         )
 
         texts = [c["text"] for c in chunks]
-        chunk_ids = [f"{book_id}_{i}" for i in range(len(chunks))]
+        if db is not None:
+            chunk_rows: list[Chunk] = []
+            for c in chunks:
+                ch_title = c.get("chapter")
+                chunk_rows.append(
+                    Chunk(
+                        book_id=book_id,
+                        chapter_title=str(ch_title) if ch_title is not None else None,
+                        chunk_index=int(c["chunk_index"]),
+                        strategy=str(c["strategy"]),
+                        text=c["text"],
+                        paragraph_ids=None,
+                    )
+                )
+            db.add_all(chunk_rows)
+            db.flush()
+            chunk_ids = [str(row.id) for row in chunk_rows]
+        else:
+            chunk_ids = [f"{book_id}_{i}" for i in range(len(chunks))]
         metadatas = [
             {
                 "book_id": c["book_id"],
