@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import json
+import logging
+from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from config import settings as app_config
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -19,7 +26,7 @@ DEFAULTS: dict[str, object] = {
     "model_id": "gpt-4o",
     "max_tokens": 2048,
     "temperature": 0.3,
-    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_model": DEFAULT_EMBEDDING_MODEL,
     "embedding_device": "cpu",
     "semantic_top_k": 5,
     "exact_results": 5,
@@ -27,6 +34,37 @@ DEFAULTS: dict[str, object] = {
 }
 
 _SETTINGS: dict[str, object] = dict(DEFAULTS)
+
+
+def _persist_path() -> Path:
+    return Path(app_config.data_dir) / "settings.json"
+
+
+def _save_to_disk() -> None:
+    path = _persist_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(_SETTINGS), indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _merge_file_into_settings() -> None:
+    """Overlay values from settings.json onto in-memory settings (only known keys)."""
+    path = _persist_path()
+    if not path.is_file():
+        return
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("Could not load settings file %s: %s", path, exc)
+        return
+    if not isinstance(raw, dict):
+        return
+    for key in DEFAULTS:
+        if key in raw:
+            _SETTINGS[key] = raw[key]
+
+
+# Load persisted settings on import (after defaults exist).
+_merge_file_into_settings()
 
 
 class SettingsUpdate(BaseModel):
@@ -76,6 +114,7 @@ def get_settings() -> dict:
 def update_settings(payload: SettingsUpdate) -> dict:
     data = payload.model_dump(exclude_none=True)
     _SETTINGS.update(data)
+    _save_to_disk()
     return dict(_SETTINGS)
 
 
@@ -83,6 +122,7 @@ def update_settings(payload: SettingsUpdate) -> dict:
 def reset_settings() -> dict:
     _SETTINGS.clear()
     _SETTINGS.update(DEFAULTS)
+    _save_to_disk()
     return dict(_SETTINGS)
 
 
@@ -90,4 +130,3 @@ def reset_settings() -> dict:
 def test_llm() -> dict:
     # Placeholder: real connectivity test comes with LLM client integration.
     return {"status": "ok"}
-

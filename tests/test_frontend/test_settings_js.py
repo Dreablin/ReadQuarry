@@ -39,6 +39,26 @@ def test_settings_js_llm_fields(settings_js: str) -> None:
     assert "llm_mode" in settings_js
 
 
+def test_settings_js_llm_group_visibility_toggle(settings_js: str) -> None:
+    """B06: Mode select shows one LLM group and hides the other (display via CSS class)."""
+    assert "settings-llm-group-ollama" in settings_js
+    assert "settings-llm-group-cloud" in settings_js
+    assert "applyLlmModeVisibility" in settings_js
+    assert "change" in settings_js
+
+
+def test_settings_js_tab_panel_activation(settings_js: str) -> None:
+    """B07: Tab buttons switch settings panels; LLM tab default on open."""
+    assert "settings-panel-llm" in settings_js
+    assert "settings-panel-embeddings" in settings_js
+    assert "activateSettingsTab" in settings_js
+
+
+def test_settings_js_cloud_security_warning_id(settings_js: str) -> None:
+    """B08: LLM visibility sync updates the cloud storage warning element."""
+    assert "settings-cloud-security-warning" in settings_js
+
+
 def test_settings_js_save_flow(settings_js: str) -> None:
     lower = settings_js.lower()
     assert "submit" in lower or "save" in lower

@@ -10,6 +10,7 @@ import {
 import { initBookList } from "./components/book-list.js";
 import { initBookUpload } from "./components/book-upload.js";
 import { initChat } from "./components/chat.js";
+import { initLogViewer } from "./components/log-viewer.js";
 import { initReferences } from "./components/references.js";
 import { initSettings } from "./components/settings.js";
 
@@ -65,11 +66,14 @@ async function ensureSession(bookId) {
  * @param {{ getSelectedBookId: () => number | null }} bookList
  * @param {ReturnType<typeof initReferences>} refs
  * @param {(msg: string) => void} setStatus
+ * @param {ReturnType<typeof initLogViewer>} logViewer
  */
-function wireSearchView(bookList, refs, setStatus) {
-  const searchBtn = document.getElementById("search-open");
-  const backBtn = document.getElementById("search-back");
+function wireMainViews(bookList, refs, setStatus, logViewer) {
+  const navDiscuss = document.getElementById("main-nav-discussion");
+  const navSearch = document.getElementById("main-nav-search");
+  const navLogs = document.getElementById("main-nav-logs");
   const viewSearch = document.getElementById("view-search");
+  const viewLogs = document.getElementById("view-logs");
   const chatPanel = document.getElementById("chat-panel");
   const refsPanel = document.getElementById("references-panel");
   const mainEl = document.getElementById("app-main");
@@ -78,18 +82,39 @@ function wireSearchView(bookList, refs, setStatus) {
   const resultsEl = document.getElementById("search-results");
 
   /**
-   * @param {"discuss" | "search"} mode
+   * @param {"discuss" | "search" | "logs"} mode
    */
   function setView(mode) {
     const showSearch = mode === "search";
-    if (chatPanel) chatPanel.hidden = showSearch;
-    if (refsPanel) refsPanel.hidden = showSearch;
+    const showLogs = mode === "logs";
+    if (chatPanel) chatPanel.hidden = showSearch || showLogs;
+    if (refsPanel) refsPanel.hidden = showSearch || showLogs;
     if (viewSearch) viewSearch.hidden = !showSearch;
-    if (mainEl) mainEl.dataset.view = showSearch ? "search" : "discuss";
+    if (viewLogs) viewLogs.hidden = !showLogs;
+    if (mainEl) {
+      if (showLogs) mainEl.dataset.view = "logs";
+      else if (showSearch) mainEl.dataset.view = "search";
+      else mainEl.dataset.view = "discuss";
+    }
+    if (navDiscuss) {
+      navDiscuss.classList.toggle("main-nav-btn--active", mode === "discuss");
+      navDiscuss.setAttribute("aria-selected", String(mode === "discuss"));
+    }
+    if (navSearch) {
+      navSearch.classList.toggle("main-nav-btn--active", mode === "search");
+      navSearch.setAttribute("aria-selected", String(mode === "search"));
+    }
+    if (navLogs) {
+      navLogs.classList.toggle("main-nav-btn--active", mode === "logs");
+      navLogs.setAttribute("aria-selected", String(mode === "logs"));
+    }
+    if (mode === "logs") logViewer.start();
+    else logViewer.stop();
   }
 
-  searchBtn?.addEventListener("click", () => setView("search"));
-  backBtn?.addEventListener("click", () => setView("discuss"));
+  navDiscuss?.addEventListener("click", () => setView("discuss"));
+  navSearch?.addEventListener("click", () => setView("search"));
+  navLogs?.addEventListener("click", () => setView("logs"));
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -200,7 +225,8 @@ export async function initApp() {
     onError: (err) => setStatus(err.message),
   });
 
-  wireSearchView(bookList, refs, setStatus);
+  const logViewer = initLogViewer({ pollMs: 2000, containerId: "log-viewer-output" });
+  wireMainViews(bookList, refs, setStatus, logViewer);
   setStatus("Ready");
 }
 

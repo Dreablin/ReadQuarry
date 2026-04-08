@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from config import settings as app_config
 from src.api.settings import get_settings
-from src.core.embeddings import EmbeddingService
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
 from src.core.hybrid_search import HybridSearch
 from src.core.llm_client import LLMClient
 from src.core.search_engine import SearchEngine
@@ -50,7 +50,10 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
     exact_k = int(app_settings.get("exact_results", 5))
     final_n = int(app_settings.get("final_context_chunks", 7))
 
-    embedder = EmbeddingService()
+    embedder = EmbeddingService(
+        model_name=str(app_settings.get("embedding_model") or DEFAULT_EMBEDDING_MODEL),
+        device=str(app_settings.get("embedding_device") or "cpu"),
+    )
     query_vector = embedder.embed_text(query)
 
     vs = VectorStore(persist_directory=str(app_config.data_dir / "chroma"))

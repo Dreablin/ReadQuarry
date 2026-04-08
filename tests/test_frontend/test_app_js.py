@@ -28,6 +28,7 @@ def test_app_js_imports_components(app_js: str) -> None:
     assert "chat.js" in app_js
     assert "references.js" in app_js
     assert "settings.js" in app_js
+    assert "log-viewer.js" in app_js
 
 
 def test_app_js_imports_api(app_js: str) -> None:
@@ -47,3 +48,6 @@ def test_app_js_wires_book_session_or_chat(app_js: str) -> None:
 def test_app_js_search_or_view_routing(app_js: str) -> None:
     lower = app_js.lower()
     assert "search" in lower and ("view" in lower or "discuss" in lower or "route" in lower)
+    assert "main-nav-discussion" in app_js
+    assert "main-nav-search" in app_js
+    assert "main-nav-logs" in app_js

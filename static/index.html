@@ -16,13 +16,41 @@
         <select id="book-select" name="book" aria-label="Book">
           <option value="">Select a book…</option>
         </select>
-        <button type="button" id="search-open" class="btn-search">Search</button>
         <button type="button" id="upload-open" class="btn-upload">Upload Book</button>
         <button type="button" id="settings-open" class="btn-settings">Settings</button>
       </nav>
     </header>
 
-    <main class="app-main" id="app-main">
+    <main class="app-main" id="app-main" data-view="discuss">
+      <nav class="app-main__view-switch" role="tablist" aria-label="Main view">
+        <button
+          type="button"
+          id="main-nav-discussion"
+          class="main-nav-btn main-nav-btn--active"
+          role="tab"
+          aria-selected="true"
+        >
+          Discussion
+        </button>
+        <button
+          type="button"
+          id="main-nav-search"
+          class="main-nav-btn"
+          role="tab"
+          aria-selected="false"
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          id="main-nav-logs"
+          class="main-nav-btn"
+          role="tab"
+          aria-selected="false"
+        >
+          Logs
+        </button>
+      </nav>
       <section
         class="panel panel--chat"
         id="chat-panel"
@@ -80,9 +108,16 @@
           <button type="submit" id="search-submit" class="btn-send">Search</button>
         </form>
         <div id="search-results" class="search-results" role="region" aria-live="polite"></div>
-        <button type="button" id="search-back" class="btn-clear">
-          Back to discussion
-        </button>
+      </section>
+
+      <section
+        id="view-logs"
+        class="panel panel--logs"
+        aria-labelledby="logs-heading"
+        hidden
+      >
+        <h2 id="logs-heading" class="panel__title">Logs</h2>
+        <pre id="log-viewer-output" class="log-viewer-output" aria-live="polite"></pre>
       </section>
     </main>
 
@@ -127,43 +162,91 @@
     >
       <form id="settings-form" method="dialog">
         <h2 id="settings-title">Settings</h2>
-        <div class="settings-form-grid">
+        <div class="settings-dialog-body">
+          <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button
+              type="button"
+              id="settings-tab-llm"
+              class="settings-tab settings-tab--active"
+              role="tab"
+              aria-selected="true"
+              aria-controls="settings-panel-llm"
+            >
+              LLM
+            </button>
+            <button
+              type="button"
+              id="settings-tab-embeddings"
+              class="settings-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="settings-panel-embeddings"
+            >
+              Embeddings &amp; Search
+            </button>
+          </div>
+          <div
+            id="settings-panel-llm"
+            class="settings-tab-panel"
+            role="tabpanel"
+            aria-labelledby="settings-tab-llm"
+          >
           <fieldset class="settings-fieldset">
             <legend>LLM</legend>
             <label for="settings-llm_mode">Mode</label>
             <select id="settings-llm_mode" name="llm_mode">
-              <option value="ollama">Ollama (local)</option>
-              <option value="cloud">Cloud (OpenAI-compatible)</option>
+              <option value="ollama">Ollama</option>
+              <option value="cloud">Cloud LLM</option>
             </select>
-            <label for="settings-ollama_base_url">Ollama base URL</label>
-            <input
-              type="url"
-              id="settings-ollama_base_url"
-              name="ollama_base_url"
-              autocomplete="off"
-            />
-            <label for="settings-ollama_model_id">Ollama model</label>
-            <input type="text" id="settings-ollama_model_id" name="ollama_model_id" />
-            <label for="settings-provider">Provider</label>
-            <input type="text" id="settings-provider" name="provider" />
-            <label for="settings-api_key">API key</label>
-            <input type="password" id="settings-api_key" name="api_key" autocomplete="off" />
-            <label for="settings-api_base_url">API base URL</label>
-            <input type="url" id="settings-api_base_url" name="api_base_url" autocomplete="off" />
-            <label for="settings-model_id">Model ID</label>
-            <input type="text" id="settings-model_id" name="model_id" />
-            <label for="settings-max_tokens">Max tokens</label>
-            <input type="number" id="settings-max_tokens" name="max_tokens" min="1" />
-            <label for="settings-temperature">Temperature</label>
-            <input
-              type="number"
-              id="settings-temperature"
-              name="temperature"
-              min="0"
-              max="2"
-              step="0.1"
-            />
+            <div id="settings-llm-group-ollama" class="settings-llm-group">
+              <label for="settings-ollama_base_url">Ollama base URL</label>
+              <input
+                type="url"
+                id="settings-ollama_base_url"
+                name="ollama_base_url"
+                autocomplete="off"
+              />
+              <label for="settings-ollama_model_id">Ollama model</label>
+              <input type="text" id="settings-ollama_model_id" name="ollama_model_id" />
+            </div>
+            <div
+              id="settings-llm-group-cloud"
+              class="settings-llm-group settings-llm-group--hidden"
+            >
+              <p id="settings-cloud-security-warning" class="settings-warning" role="note">
+                All settings, including API keys, are stored in a local file at data/settings.json.
+                Keep this file secure!
+              </p>
+              <label for="settings-provider">Provider</label>
+              <input type="text" id="settings-provider" name="provider" />
+              <label for="settings-api_key">API key</label>
+              <input type="password" id="settings-api_key" name="api_key" autocomplete="off" />
+              <label for="settings-api_base_url">API base URL</label>
+              <input type="url" id="settings-api_base_url" name="api_base_url" autocomplete="off" />
+              <label for="settings-model_id">Model ID</label>
+              <input type="text" id="settings-model_id" name="model_id" />
+            </div>
+            <div class="settings-llm-shared">
+              <label for="settings-max_tokens">Max tokens</label>
+              <input type="number" id="settings-max_tokens" name="max_tokens" min="1" />
+              <label for="settings-temperature">Temperature</label>
+              <input
+                type="number"
+                id="settings-temperature"
+                name="temperature"
+                min="0"
+                max="2"
+                step="0.1"
+              />
+            </div>
           </fieldset>
+          </div>
+          <div
+            id="settings-panel-embeddings"
+            class="settings-tab-panel settings-tab-panel--hidden"
+            role="tabpanel"
+            aria-labelledby="settings-tab-embeddings"
+          >
           <fieldset class="settings-fieldset">
             <legend>Embeddings &amp; search</legend>
             <label for="settings-embedding_model">Embedding model</label>
@@ -185,6 +268,7 @@
               min="1"
             />
           </fieldset>
+          </div>
         </div>
         <p id="settings-feedback" class="settings-feedback" role="status" aria-live="polite"></p>
         <div class="dialog__actions">

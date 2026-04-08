@@ -17,6 +17,16 @@ def test_required_root_files_exist() -> None:
         assert (ROOT / file_name).is_file(), f"Missing file: {file_name}"
 
 
+def test_prompt_documents_ralph_loop_finite_max_iterations_safety() -> None:
+    """B12: prompt.md must tell operators to use a finite max_iterations cap (not unlimited)."""
+    text = (ROOT / "prompt.md").read_text(encoding="utf-8")
+    lower = text.lower()
+    assert "max_iterations" in lower or "max-iterations" in lower
+    assert "safety" in lower or "backup" in lower or "finite" in lower
+    assert "do not" in lower or "don't" in lower or "never" in lower
+    assert "`0`" in text or " 0 " in text
+
+
 def test_required_directories_exist() -> None:
     required_dirs = [
         "src",

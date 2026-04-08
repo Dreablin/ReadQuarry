@@ -49,6 +49,10 @@ def test_api_js_chat_endpoints(api_js: str) -> None:
     assert "message" in api_js
 
 
+def test_api_js_logs_endpoint(api_js: str) -> None:
+    assert "/api/logs" in api_js
+
+
 def test_api_js_exports_named_functions(api_js: str) -> None:
     for name in (
         "uploadBook",
@@ -67,5 +71,6 @@ def test_api_js_exports_named_functions(api_js: str) -> None:
         "listChatSessions",
         "getChatMessages",
         "sendChatMessage",
+        "fetchLogs",
     ):
         assert name in api_js, f"Expected exported function name {name} in api.js"
