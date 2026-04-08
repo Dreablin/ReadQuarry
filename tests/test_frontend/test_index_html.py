@@ -113,6 +113,12 @@ def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-llm_mode" in index_html
 
 
+def test_index_html_settings_clear_all_data_button(index_html: str) -> None:
+    """B16: Settings includes a destructive clear-all control."""
+    assert 'id="settings-clear-all"' in index_html
+    assert "btn-danger" in index_html
+
+
 def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     """B07: Settings dialog uses LLM vs Embeddings & Search tab panels."""
     assert "settings-tab-llm" in index_html

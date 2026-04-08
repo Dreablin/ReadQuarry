@@ -74,3 +74,10 @@ def test_settings_js_test_llm_interprets_ok_and_error(settings_js: str) -> None:
     assert "res.status" in settings_js
     assert "settings-feedback--ok" in settings_js
     assert "settings-feedback--error" in settings_js
+
+
+def test_settings_js_clear_all_data_wiring(settings_js: str) -> None:
+    """B16: Clear all uses API and confirm before destructive call."""
+    assert "clearAllBooks" in settings_js
+    assert "Delete all books and conversations" in settings_js
+    assert "settings-clear-all" in settings_js

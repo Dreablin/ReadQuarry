@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 7 — Bug Fixes (Round 2)
-**Next Task**: B16
-**Last Completed**: B15
-**Total Progress**: 16 / 17 tasks
+**Next Task**: —
+**Last Completed**: B16
+**Total Progress**: 17 / 17 tasks
 
 ---
 
@@ -36,7 +36,7 @@
 - [x] **B13**: Duplicate book upload fails silently — add backend logging and show error inside upload dialog — see BUGS.md B13
 - [x] **B14**: "Test LLM" button is a stub — wire to real LLMClient connectivity check — see BUGS.md B14
 - [x] **B15**: Settings dialog action buttons unreadable — add themed CSS for `.dialog__actions button` — see BUGS.md B15
-- [ ] **B16**: Add "Clear All Data" button to delete all books and reset databases — see BUGS.md B16
+- [x] **B16**: Add "Clear All Data" button to delete all books and reset databases — see BUGS.md B16
 
 ---
 
@@ -60,6 +60,7 @@
 | 2026-04-07 | B13 | `logger.warning` on duplicate hash before 409; `#upload-feedback` + `.upload-feedback--error` in dialog; `book-upload.js` shows `error.message` in-dialog; still calls `onError` for status bar | BUGS.md B13 |
 | 2026-04-07 | B14 | `POST /test-llm` uses `LLMClient(..., timeout=10)` + minimal `chat_completion`; HTTP 200 + `{status, detail?}`; cloud empty `api_key` short-circuit; `settings.js` + `.settings-feedback--ok/--error` | BUGS.md B14; mock `LLMClient` in API tests via `settings_module` |
 | 2026-04-07 | B15 | Added explicit `.dialog__actions button` dark-theme styles (text/background/border/radius/hover/focus/active) and accent primary styles for `#settings-save` and `#upload-submit` | BUGS.md B15 readability and contrast in settings/upload dialogs |
+| 2026-04-07 | B16 | `DELETE /api/books` clears uploads/chroma/index per book then `delete(Book)`; Settings danger zone + `clearAllBooks()` + confirm; `app.js` refreshes list, clears chat | BUGS.md B16 |
 
 ---
 

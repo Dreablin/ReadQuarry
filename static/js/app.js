@@ -178,7 +178,6 @@ export async function initApp() {
   }
 
   const refs = initReferences();
-  initSettings();
 
   /** @type {{ getSelectedBookId: () => number | null } | null} */
   let bookListRef = null;
@@ -216,6 +215,17 @@ export async function initApp() {
   });
 
   bookListRef = bookList;
+
+  initSettings({
+    onAfterClearAllBooks: async () => {
+      await bookList.refresh();
+      const sel = document.getElementById("book-select");
+      if (sel instanceof HTMLSelectElement) sel.value = "";
+      sessionId = null;
+      chatApi.clearMessages();
+      setStatus("All books and conversations cleared.");
+    },
+  });
 
   initBookUpload({
     onSuccess: async () => {

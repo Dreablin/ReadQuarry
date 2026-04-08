@@ -73,6 +73,12 @@ def test_style_css_settings_feedback_ok_error(style_css: str) -> None:
     assert ".settings-feedback--error" in style_css
 
 
+def test_style_css_settings_clear_all_danger_zone(style_css: str) -> None:
+    """B16: clear-all button and danger zone styling."""
+    assert ".settings-danger-zone" in style_css
+    assert ".btn-danger" in style_css
+
+
 def test_style_css_dialog_action_buttons_themed(style_css: str) -> None:
     """B15: dialog action buttons must be explicitly themed for dark UI contrast."""
     assert ".dialog__actions button" in style_css

@@ -2,7 +2,7 @@
  * Settings modal: load/save app settings via `/api/settings`.
  */
 
-import { getSettings, resetSettings, testLlm, updateSettings } from "../api.js";
+import { clearAllBooks, getSettings, resetSettings, testLlm, updateSettings } from "../api.js";
 
 /** @type {readonly string[]} */
 const FIELD_KEYS = [
@@ -109,6 +109,7 @@ function readForm() {
  * @param {string} [options.formId]
  * @param {string} [options.openButtonId]
  * @param {string} [options.feedbackId]
+ * @param {() => void | Promise<void>} [options.onAfterClearAllBooks]
  */
 export function initSettings(options = {}) {
   const dialogId = options.dialogId ?? "settings-dialog";
@@ -210,6 +211,26 @@ export function initSettings(options = {}) {
         setFeedback("Defaults restored.");
       } catch (e) {
         setFeedback(e instanceof Error ? e.message : "Reset failed");
+      }
+    });
+  }
+
+  const clearAllBtn = document.getElementById("settings-clear-all");
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", async () => {
+      const ok = window.confirm(
+        "Delete all books and conversations? This cannot be undone.",
+      );
+      if (!ok) return;
+      setFeedback("Clearing…");
+      try {
+        await clearAllBooks();
+        setFeedback("All books and conversations cleared.", "ok");
+        if (typeof options.onAfterClearAllBooks === "function") {
+          await options.onAfterClearAllBooks();
+        }
+      } catch (e) {
+        setFeedback(e instanceof Error ? e.message : "Clear failed", "error");
       }
     });
   }

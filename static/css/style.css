@@ -706,6 +706,39 @@ dialog.dialog--settings {
   line-height: 1.45;
 }
 
+/* B16: destructive clear-all control */
+.dialog--settings .settings-danger-zone {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: var(--radius-md);
+  background: rgba(127, 29, 29, 0.15);
+}
+
+.dialog--settings .settings-danger-zone__text {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #fecaca;
+}
+
+.btn-danger {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: rgba(185, 28, 28, 0.35);
+  color: #fecaca;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(220, 38, 38, 0.55);
+  border-color: rgba(252, 165, 165, 0.65);
+}
+
 .dialog--settings input,
 .dialog--settings select {
   width: 100%;
