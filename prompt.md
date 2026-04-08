@@ -1,5 +1,11 @@
 # ReadQuarry — Loop Prompt
 
+## Ralph Loop: `max_iterations` safety cap
+
+When starting this loop in Cursor, set **`max_iterations` to a finite positive number** (for example 15–100) in `.cursor/ralph/scratchpad.md` frontmatter or via the plugin’s `--max-iterations` flag. **Do not use `0` (unlimited)** as the only guard: some setups may keep scheduling turns even after `<promise>ALL_TASKS_COMPLETE</promise>`, which wastes iterations. The completion promise remains the primary stop signal; a finite cap is a **hard backup limit**.
+
+---
+
 Read `progress.md` to find the next uncompleted task (marked `[ ]`).
 Read `BUGS.md` to understand the requirements for that task.
 
