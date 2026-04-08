@@ -562,6 +562,52 @@ dialog.dialog::backdrop {
   margin-top: var(--space-md);
 }
 
+/* B15: explicit themed action buttons for dark dialogs */
+.dialog__actions button {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.05s ease;
+}
+
+.dialog__actions button:hover {
+  background: rgba(72, 82, 118, 0.8);
+  border-color: rgba(150, 170, 230, 0.45);
+  box-shadow: 0 0 0 1px rgba(125, 145, 210, 0.18);
+}
+
+.dialog__actions button:focus-visible {
+  outline: none;
+  border-color: rgba(107, 76, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(107, 76, 255, 0.32);
+}
+
+.dialog__actions button:active {
+  transform: translateY(1px);
+}
+
+#settings-save,
+#upload-submit {
+  border-color: rgba(90, 116, 205, 0.8);
+  background: linear-gradient(90deg, var(--color-accent-start), var(--color-accent-end));
+  color: #fff;
+}
+
+#settings-save:hover,
+#upload-submit:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 0 1px rgba(120, 180, 255, 0.25), 0 6px 16px rgba(20, 26, 50, 0.35);
+}
+
 dialog.dialog--settings {
   max-width: 42rem;
 }

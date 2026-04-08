@@ -73,6 +73,24 @@ def test_style_css_settings_feedback_ok_error(style_css: str) -> None:
     assert ".settings-feedback--error" in style_css
 
 
+def test_style_css_dialog_action_buttons_themed(style_css: str) -> None:
+    """B15: dialog action buttons must be explicitly themed for dark UI contrast."""
+    assert ".dialog__actions button" in style_css
+    assert "cursor: pointer" in style_css
+    assert "var(--color-text)" in style_css or "#fff" in style_css
+
+
+def test_style_css_dialog_action_buttons_hover(style_css: str) -> None:
+    """B15: action buttons have visible hover/active state."""
+    assert ".dialog__actions button:hover" in style_css
+
+
+def test_style_css_dialog_primary_actions_stand_out(style_css: str) -> None:
+    """B15: primary submit buttons in dialogs have accent styling."""
+    assert "#settings-save" in style_css
+    assert "#upload-submit" in style_css
+
+
 def test_style_css_settings_cloud_warning(style_css: str) -> None:
     """B08: Cloud API key notice uses distinct warning styling."""
     assert "settings-warning" in style_css
