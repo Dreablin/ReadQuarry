@@ -16,13 +16,32 @@
         <select id="book-select" name="book" aria-label="Book">
           <option value="">Select a book…</option>
         </select>
-        <button type="button" id="search-open" class="btn-search">Search</button>
         <button type="button" id="upload-open" class="btn-upload">Upload Book</button>
         <button type="button" id="settings-open" class="btn-settings">Settings</button>
       </nav>
     </header>
 
-    <main class="app-main" id="app-main">
+    <main class="app-main" id="app-main" data-view="discuss">
+      <nav class="app-main__view-switch" role="tablist" aria-label="Main view">
+        <button
+          type="button"
+          id="main-nav-discussion"
+          class="main-nav-btn main-nav-btn--active"
+          role="tab"
+          aria-selected="true"
+        >
+          Discussion
+        </button>
+        <button
+          type="button"
+          id="main-nav-search"
+          class="main-nav-btn"
+          role="tab"
+          aria-selected="false"
+        >
+          Search
+        </button>
+      </nav>
       <section
         class="panel panel--chat"
         id="chat-panel"
@@ -80,9 +99,6 @@
           <button type="submit" id="search-submit" class="btn-send">Search</button>
         </form>
         <div id="search-results" class="search-results" role="region" aria-live="polite"></div>
-        <button type="button" id="search-back" class="btn-clear">
-          Back to discussion
-        </button>
       </section>
     </main>
 

@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 6 — Bug Fixes
-**Next Task**: B09
-**Last Completed**: B08
-**Total Progress**: 8 / 12 tasks
+**Next Task**: B10
+**Last Completed**: B09
+**Total Progress**: 9 / 12 tasks
 
 ---
 
@@ -25,7 +25,7 @@
 - [x] **B06**: Split LLM settings into Ollama/Cloud groups with dropdown selector and conditional field visibility — see BUGS.md B06
 - [x] **B07**: Reorganize settings dialog into tabbed layout (LLM / Embeddings & Search) — see BUGS.md B07
 - [x] **B08**: Show API key security warning when Cloud LLM mode is selected — see BUGS.md B08
-- [ ] **B09**: Put Discussion and Search on separate screens with symmetric navigation buttons — see BUGS.md B09
+- [x] **B09**: Put Discussion and Search on separate screens with symmetric navigation buttons — see BUGS.md B09
 - [ ] **B10**: Add debug log viewer as third navigation screen — see BUGS.md B10
 - [ ] **B11**: Add detailed logging during book ingestion pipeline — see BUGS.md B11
 - [ ] **B12**: Document Ralph Loop scratchpad safety cap requirement — see BUGS.md B12
@@ -44,6 +44,7 @@
 | 2026-04-07 | B06 | `#settings-llm-group-ollama` / `-cloud`; `applyLlmModeVisibility` + class `settings-llm-group--hidden`; max tokens & temperature in always-visible `settings-llm-shared`; `readForm` unchanged so hidden fields still save | BUGS.md: toggle with CSS only; all keys remain in DOM for preserve-on-switch |
 | 2026-04-07 | B07 | Tab bar `settings-tabs` + panels `settings-panel-llm` / `settings-panel-embeddings`; `activateSettingsTab`; ARIA tablist/tab/tabpanel; LLM tab on each open and after reset | Matches BUGS.md; inactive panel `settings-tab-panel--hidden` |
 | 2026-04-07 | B08 | `#settings-cloud-security-warning` in cloud group; copy cites `data/settings.json` (B03 path); `.settings-warning` amber styling; `hidden` toggled in `applyLlmModeVisibility` with cloud mode | Aligns with BUGS.md; `hidden` keeps notice out of accessibility tree when Ollama |
+| 2026-04-07 | B09 | `app-main__view-switch` with `#main-nav-discussion` / `#main-nav-search`; removed header Search and `#search-back`; grid row for toolbar + `data-view` on `#app-main`; `.main-nav-btn--active` for current view | Matches BUGS.md symmetric nav; search panel stays full-width via existing `data-view="search"` CSS |
 
 ---
 

@@ -44,6 +44,15 @@ def test_index_html_header_controls(index_html: str) -> None:
     assert "settings" in index_html.lower()
 
 
+def test_index_html_main_view_nav_discussion_search(index_html: str) -> None:
+    """B09: Symmetric Discussion / Search controls at top of main; no header search link or back button."""
+    assert "main-nav-discussion" in index_html
+    assert "main-nav-search" in index_html
+    assert "Discussion" in index_html
+    assert 'id="search-open"' not in index_html
+    assert "search-back" not in index_html
+
+
 def test_index_html_split_panels(index_html: str) -> None:
     assert "chat-panel" in index_html
     assert "references-panel" in index_html

@@ -67,8 +67,8 @@ async function ensureSession(bookId) {
  * @param {(msg: string) => void} setStatus
  */
 function wireSearchView(bookList, refs, setStatus) {
-  const searchBtn = document.getElementById("search-open");
-  const backBtn = document.getElementById("search-back");
+  const navDiscuss = document.getElementById("main-nav-discussion");
+  const navSearch = document.getElementById("main-nav-search");
   const viewSearch = document.getElementById("view-search");
   const chatPanel = document.getElementById("chat-panel");
   const refsPanel = document.getElementById("references-panel");
@@ -86,10 +86,18 @@ function wireSearchView(bookList, refs, setStatus) {
     if (refsPanel) refsPanel.hidden = showSearch;
     if (viewSearch) viewSearch.hidden = !showSearch;
     if (mainEl) mainEl.dataset.view = showSearch ? "search" : "discuss";
+    if (navDiscuss) {
+      navDiscuss.classList.toggle("main-nav-btn--active", !showSearch);
+      navDiscuss.setAttribute("aria-selected", String(!showSearch));
+    }
+    if (navSearch) {
+      navSearch.classList.toggle("main-nav-btn--active", showSearch);
+      navSearch.setAttribute("aria-selected", String(showSearch));
+    }
   }
 
-  searchBtn?.addEventListener("click", () => setView("search"));
-  backBtn?.addEventListener("click", () => setView("discuss"));
+  navDiscuss?.addEventListener("click", () => setView("discuss"));
+  navSearch?.addEventListener("click", () => setView("search"));
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
