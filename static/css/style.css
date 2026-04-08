@@ -195,7 +195,8 @@ body {
   background: linear-gradient(135deg, rgba(107, 76, 255, 0.12), rgba(45, 212, 191, 0.06));
 }
 
-.app-main[data-view="search"] {
+.app-main[data-view="search"],
+.app-main[data-view="logs"] {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -209,9 +210,34 @@ body {
   grid-row: 2;
 }
 
-#view-search.panel {
+#view-search.panel,
+#view-logs.panel {
   grid-column: 1 / -1;
   grid-row: 2;
+}
+
+.panel--logs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.log-viewer-output {
+  flex: 1;
+  min-height: 240px;
+  max-height: min(60vh, 640px);
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-sm);
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-muted);
+  background: rgba(8, 10, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
 }
 
 .search-form {
@@ -698,7 +724,8 @@ dialog.dialog--settings {
     grid-row: 3;
   }
 
-  #view-search.panel {
+  #view-search.panel,
+  #view-logs.panel {
     grid-column: 1;
     grid-row: 2;
   }

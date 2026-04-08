@@ -78,6 +78,12 @@ def test_style_css_main_view_nav_buttons(style_css: str) -> None:
     assert "main-nav-btn--active" in style_css
 
 
+def test_style_css_logs_view_panel(style_css: str) -> None:
+    """B10: Logs view full-width and scrollable pre."""
+    assert 'data-view="logs"' in style_css or "[data-view=\"logs\"]" in style_css
+    assert "log-viewer" in style_css
+
+
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
     for cls in (
         ".app-header",

@@ -41,6 +41,15 @@
         >
           Search
         </button>
+        <button
+          type="button"
+          id="main-nav-logs"
+          class="main-nav-btn"
+          role="tab"
+          aria-selected="false"
+        >
+          Logs
+        </button>
       </nav>
       <section
         class="panel panel--chat"
@@ -99,6 +108,16 @@
           <button type="submit" id="search-submit" class="btn-send">Search</button>
         </form>
         <div id="search-results" class="search-results" role="region" aria-live="polite"></div>
+      </section>
+
+      <section
+        id="view-logs"
+        class="panel panel--logs"
+        aria-labelledby="logs-heading"
+        hidden
+      >
+        <h2 id="logs-heading" class="panel__title">Logs</h2>
+        <pre id="log-viewer-output" class="log-viewer-output" aria-live="polite"></pre>
       </section>
     </main>
 

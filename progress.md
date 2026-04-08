@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 6 — Bug Fixes
-**Next Task**: B10
-**Last Completed**: B09
-**Total Progress**: 9 / 12 tasks
+**Next Task**: B11
+**Last Completed**: B10
+**Total Progress**: 10 / 12 tasks
 
 ---
 
@@ -26,7 +26,7 @@
 - [x] **B07**: Reorganize settings dialog into tabbed layout (LLM / Embeddings & Search) — see BUGS.md B07
 - [x] **B08**: Show API key security warning when Cloud LLM mode is selected — see BUGS.md B08
 - [x] **B09**: Put Discussion and Search on separate screens with symmetric navigation buttons — see BUGS.md B09
-- [ ] **B10**: Add debug log viewer as third navigation screen — see BUGS.md B10
+- [x] **B10**: Add debug log viewer as third navigation screen — see BUGS.md B10
 - [ ] **B11**: Add detailed logging during book ingestion pipeline — see BUGS.md B11
 - [ ] **B12**: Document Ralph Loop scratchpad safety cap requirement — see BUGS.md B12
 
@@ -45,6 +45,7 @@
 | 2026-04-07 | B07 | Tab bar `settings-tabs` + panels `settings-panel-llm` / `settings-panel-embeddings`; `activateSettingsTab`; ARIA tablist/tab/tabpanel; LLM tab on each open and after reset | Matches BUGS.md; inactive panel `settings-tab-panel--hidden` |
 | 2026-04-07 | B08 | `#settings-cloud-security-warning` in cloud group; copy cites `data/settings.json` (B03 path); `.settings-warning` amber styling; `hidden` toggled in `applyLlmModeVisibility` with cloud mode | Aligns with BUGS.md; `hidden` keeps notice out of accessibility tree when Ollama |
 | 2026-04-07 | B09 | `app-main__view-switch` with `#main-nav-discussion` / `#main-nav-search`; removed header Search and `#search-back`; grid row for toolbar + `data-view` on `#app-main`; `.main-nav-btn--active` for current view | Matches BUGS.md symmetric nav; search panel stays full-width via existing `data-view="search"` CSS |
+| 2026-04-07 | B10 | `RingBufferHandler` + deque(500) in `src/api/logs.py`; `GET /api/logs`; `install_memory_log_handler()` from `main.py`; `#main-nav-logs`, `data-view="logs"`, `log-viewer.js` polls and scrolls `<pre>` | BUGS.md option (b); polling while Logs tab active only |
 
 ---
 

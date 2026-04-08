@@ -53,6 +53,13 @@ def test_index_html_main_view_nav_discussion_search(index_html: str) -> None:
     assert "search-back" not in index_html
 
 
+def test_index_html_logs_view_panel(index_html: str) -> None:
+    """B10: Third main nav Logs and scrollable log viewer panel."""
+    assert "main-nav-logs" in index_html
+    assert "view-logs" in index_html
+    assert "log-viewer-output" in index_html
+
+
 def test_index_html_split_panels(index_html: str) -> None:
     assert "chat-panel" in index_html
     assert "references-panel" in index_html

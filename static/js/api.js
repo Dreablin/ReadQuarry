@@ -165,6 +165,14 @@ export async function testLlm() {
   return _jsonOrThrow(res);
 }
 
+// ——— Logs (debug viewer) ———
+
+/** @returns {Promise<unknown>} */
+export async function fetchLogs() {
+  const res = await fetch("/api/logs");
+  return _jsonOrThrow(res);
+}
+
 // ——— Chat ———
 
 /**
