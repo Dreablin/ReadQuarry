@@ -516,6 +516,18 @@ dialog.dialog--settings {
   margin-top: 0;
 }
 
+.dialog--settings .settings-llm-group {
+  margin-top: var(--space-sm);
+}
+
+.dialog--settings .settings-llm-group--hidden {
+  display: none;
+}
+
+.dialog--settings .settings-llm-shared {
+  margin-top: var(--space-md);
+}
+
 .dialog--settings input,
 .dialog--settings select {
   width: 100%;

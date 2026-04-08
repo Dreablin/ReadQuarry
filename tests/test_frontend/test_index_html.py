@@ -78,6 +78,17 @@ def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-llm_mode" in index_html
 
 
+def test_index_html_settings_llm_ollama_cloud_groups(index_html: str) -> None:
+    """B06: LLM fields split into Ollama vs Cloud containers toggled by mode."""
+    assert "settings-llm-group-ollama" in index_html
+    assert "settings-llm-group-cloud" in index_html
+    assert "settings-ollama_base_url" in index_html
+    assert "settings-ollama_model_id" in index_html
+    assert "settings-api_key" in index_html
+    assert "settings-api_base_url" in index_html
+    assert "settings-model_id" in index_html
+
+
 def test_index_html_search_view_and_app_module(index_html: str) -> None:
     assert "view-search" in index_html
     assert "search-query" in index_html

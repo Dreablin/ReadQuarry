@@ -56,6 +56,11 @@ def test_style_css_responsive_stack(style_css: str) -> None:
     assert "max-width" in style_css.lower()
 
 
+def test_style_css_settings_llm_group_hidden(style_css: str) -> None:
+    """B06: Hidden LLM group uses display:none (CSS class, not DOM removal)."""
+    assert "settings-llm-group--hidden" in style_css
+
+
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
     for cls in (
         ".app-header",

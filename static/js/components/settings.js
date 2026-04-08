@@ -30,6 +30,17 @@ function fieldId(key) {
   return `settings-${key}`;
 }
 
+/** Show Ollama or Cloud LLM field group based on `settings-llm_mode` (CSS display, no DOM removal). */
+function applyLlmModeVisibility() {
+  const modeEl = document.getElementById("settings-llm_mode");
+  const ollama = document.getElementById("settings-llm-group-ollama");
+  const cloud = document.getElementById("settings-llm-group-cloud");
+  if (!(modeEl instanceof HTMLSelectElement) || !ollama || !cloud) return;
+  const cloudActive = modeEl.value === "cloud";
+  ollama.classList.toggle("settings-llm-group--hidden", cloudActive);
+  cloud.classList.toggle("settings-llm-group--hidden", !cloudActive);
+}
+
 /**
  * @param {Record<string, unknown>} data
  */
@@ -41,6 +52,7 @@ function fillForm(data) {
     if (v === undefined || v === null) continue;
     el.value = String(v);
   }
+  applyLlmModeVisibility();
 }
 
 /**
@@ -95,6 +107,14 @@ export function initSettings(options = {}) {
   if (!(form instanceof HTMLFormElement)) {
     throw new Error(`initSettings: #${formId} not found or not a <form>`);
   }
+
+  const llmModeSelect = document.getElementById("settings-llm_mode");
+  if (llmModeSelect) {
+    llmModeSelect.addEventListener("change", () => {
+      applyLlmModeVisibility();
+    });
+  }
+  applyLlmModeVisibility();
 
   function setFeedback(text) {
     if (feedback) feedback.textContent = text;
