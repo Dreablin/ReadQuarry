@@ -10,7 +10,7 @@ You are building **ReadQuarry**, a local-first book discussion app. You operate 
 ## Every Turn
 
 1. **Read `progress.md`** — find the first task marked `[ ]`. That is your current task.
-2. **Read `PRD.md`** — understand the requirements for that task (architecture, API spec, schemas, etc.).
+2. **Read `BUGS.md`** — understand the bug report for that task (also consult `PRD.md` for architecture context if needed).
 3. **Implement using TDD**:
    - Write tests first → run them (should fail) → write implementation → run tests (should pass).
    - Run `pytest tests/ -v --tb=short` to verify ALL tests pass (not just new ones).
@@ -19,7 +19,7 @@ You are building **ReadQuarry**, a local-first book discussion app. You operate 
    - Update the "Current Status" section (Phase, Next Task, Last Completed, Total Progress).
    - Add a row to the Decisions Log if you made any non-obvious choices.
    - Add a row to Issues & Blockers if you hit any problems.
-5. **Commit**: `git add -A && git commit -m "feat: T{XX} - {description}"`.
+5. **Commit**: `git add -A && git commit -m "fix: B{XX} - {description}"`.
 6. **If ALL tasks in `progress.md` are `[x]`**, output: `<promise>ALL_TASKS_COMPLETE</promise>`
 
 ## Critical Rules
@@ -31,6 +31,7 @@ You are building **ReadQuarry**, a local-first book discussion app. You operate 
 - **Use the exact tech stack** from PRD.md. Do not substitute libraries.
 - **Keep `data/` gitignored** — it's runtime data.
 - **Do NOT modify `PRD.md`** — it is read-only requirements.
+- **Do NOT modify `BUGS.md`** — it is read-only bug specifications.
 
 ## Code Standards
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from config import settings
 from src.core.hybrid_search import HybridSearch
 from src.core.search_engine import SearchEngine
 
@@ -45,7 +46,9 @@ def semantic_search(payload: SemanticSearchRequest) -> dict:
 
 @router.post("/exact")
 def exact_search(payload: ExactSearchRequest) -> dict:
-    engine = SearchEngine(index_dir=f"data/tantivy_index/book_{payload.book_id}")
+    engine = SearchEngine(
+        index_dir=str(settings.data_dir / "tantivy_index" / f"book_{payload.book_id}")
+    )
     results = engine.search(payload.query, max_results=payload.max_results)
     return {"results": results}
 

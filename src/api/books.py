@@ -1,64 +1,138 @@
 from __future__ import annotations
 
-from datetime import datetime
+import hashlib
+import logging
+import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from config import settings
+from src.core.book_processor import BookProcessor
+from src.core.embeddings import EmbeddingService
+from src.core.search_engine import SearchEngine
+from src.core.vector_store import VectorStore
+from src.db.database import get_db
+from src.models.book import Book
+from src.parsers import EpubParser, ParserRegistry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
-_BOOKS: dict[int, dict] = {}
-_NEXT_ID = 1
+
+def _parser_registry() -> ParserRegistry:
+    reg = ParserRegistry()
+    reg.register(EpubParser())
+    return reg
+
+
+def _book_to_response(book: Book) -> dict:
+    return {
+        "id": book.id,
+        "title": book.title,
+        "author": book.author,
+        "file_name": book.file_name,
+        "chunking_strategy": book.chunking_strategy,
+        "upload_date": book.upload_date.isoformat() if book.upload_date else "",
+    }
 
 
 @router.post("/upload")
-async def upload_book(file: UploadFile = File(...), chunking_strategy: str = Form("paragraph")) -> dict:
-    global _NEXT_ID
+async def upload_book(
+    file: UploadFile = File(...),
+    chunking_strategy: str = Form("paragraph"),
+    db: Session = Depends(get_db),
+) -> dict:
     allowed_strategies = {"paragraph", "sentence", "fixed-size", "chapter-aware-recursive"}
     if chunking_strategy not in allowed_strategies:
         raise HTTPException(status_code=400, detail="Unsupported chunking strategy")
     if not file.filename or not file.filename.lower().endswith(".epub"):
         raise HTTPException(status_code=400, detail="Only EPUB files are supported")
 
-    book_id = _NEXT_ID
-    _NEXT_ID += 1
-
-    # Save upload to local runtime data folder.
-    data_dir = Path("data/uploads")
-    data_dir.mkdir(parents=True, exist_ok=True)
-    destination = data_dir / f"{book_id}_{file.filename}"
     content = await file.read()
+    file_hash = hashlib.sha256(content).hexdigest()
+
+    existing = db.scalars(select(Book).where(Book.file_hash == file_hash)).first()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Book with this content already exists")
+
+    stem = Path(file.filename).stem
+    book = Book(
+        title=stem,
+        author=None,
+        file_name=file.filename,
+        file_hash=file_hash,
+        chunking_strategy=chunking_strategy,
+        total_paragraphs=None,
+        total_chunks=None,
+    )
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    book_id = book.id
+
+    uploads_dir = settings.data_dir / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    destination = uploads_dir / f"{book_id}_{file.filename}"
     destination.write_bytes(content)
 
-    record = {
-        "id": book_id,
-        "title": Path(file.filename).stem,
-        "author": None,
-        "file_name": file.filename,
-        "chunking_strategy": chunking_strategy,
-        "upload_date": datetime.utcnow().isoformat(),
-    }
-    _BOOKS[book_id] = record
-    return record
+    processor = BookProcessor(
+        parser_registry=_parser_registry(),
+        embedding_service=EmbeddingService(),
+        vector_store=VectorStore(persist_directory=str(settings.data_dir / "chroma")),
+        search_engine=SearchEngine(
+            index_dir=str(settings.data_dir / "tantivy_index" / f"book_{book_id}")
+        ),
+    )
+    try:
+        result = processor.process_book(str(destination), book_id, chunking_strategy)
+    except Exception:
+        logger.exception("Book processing failed for book_id=%s", book_id)
+        destination.unlink(missing_ok=True)
+        db.delete(book)
+        db.commit()
+        raise HTTPException(status_code=422, detail="Failed to process EPUB file") from None
+
+    book.title = result.get("book_title") or book.title
+    book.author = result.get("book_author")
+    book.total_chunks = result.get("total_chunks")
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    return _book_to_response(book)
 
 
 @router.get("")
-def list_books() -> list[dict]:
-    return list(_BOOKS.values())
+def list_books(db: Session = Depends(get_db)) -> list[dict]:
+    books = db.scalars(select(Book).order_by(Book.id.asc())).all()
+    return [_book_to_response(b) for b in books]
 
 
 @router.get("/{book_id}")
-def get_book(book_id: int) -> dict:
-    record = _BOOKS.get(book_id)
-    if record is None:
+def get_book(book_id: int, db: Session = Depends(get_db)) -> dict:
+    book = db.get(Book, book_id)
+    if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    return record
+    return _book_to_response(book)
 
 
 @router.delete("/{book_id}")
-def delete_book(book_id: int) -> dict:
-    if book_id not in _BOOKS:
+def delete_book(book_id: int, db: Session = Depends(get_db)) -> dict:
+    book = db.get(Book, book_id)
+    if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    _BOOKS.pop(book_id)
+
+    uploads_dir = settings.data_dir / "uploads"
+    destination = uploads_dir / f"{book_id}_{book.file_name}"
+    destination.unlink(missing_ok=True)
+
+    VectorStore(persist_directory=str(settings.data_dir / "chroma")).delete_collection(f"book_{book_id}")
+    index_dir = settings.data_dir / "tantivy_index" / f"book_{book_id}"
+    shutil.rmtree(index_dir, ignore_errors=True)
+
+    db.delete(book)
+    db.commit()
     return {"status": "deleted", "id": book_id}

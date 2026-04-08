@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from ebooklib import epub
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
@@ -18,7 +19,6 @@ from sqlalchemy.pool import StaticPool
 
 from main import app
 from src.db.database import Base, get_db
-from src.models.book import Book
 
 
 def _make_memory_session() -> Session:
@@ -56,20 +56,22 @@ def client_with_db(memory_db: Session) -> TestClient:
     app.dependency_overrides.clear()
 
 
-def _insert_book(session: Session) -> int:
-    book = Book(
-        title="E2E Smoke",
-        author=None,
-        file_name="smoke.epub",
-        file_hash="e2e-smoke-hash",
-        chunking_strategy="paragraph",
-        total_paragraphs=0,
-        total_chunks=0,
+def _write_smoke_epub(path: Path) -> None:
+    book = epub.EpubBook()
+    book.set_identifier("e2e-smoke")
+    book.set_title("Smoke EPUB")
+    book.set_language("en")
+    c1 = epub.EpubHtml(
+        title="Ch1",
+        file_name="c1.xhtml",
+        content="<h1>Ch1</h1><p>smoke keyword for search.</p>",
     )
-    session.add(book)
-    session.commit()
-    session.refresh(book)
-    return book.id
+    book.add_item(c1)
+    book.toc = (c1,)
+    book.spine = [c1]
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    epub.write_epub(str(path), book)
 
 
 def test_readquarry_end_to_end_smoke(
@@ -93,7 +95,7 @@ def test_readquarry_end_to_end_smoke(
     assert client.post("/api/settings/test-llm").status_code == 200
 
     epub = tmp_path / "smoke.epub"
-    epub.write_bytes(b"dummy epub bytes for smoke")
+    _write_smoke_epub(epub)
     with epub.open("rb") as f:
         up = client.post(
             "/api/books/upload",
@@ -120,10 +122,9 @@ def test_readquarry_end_to_end_smoke(
     assert search.status_code == 200
     assert "results" in search.json()
 
-    bid = _insert_book(memory_db)
     sid = client.post(
         "/api/chat/sessions",
-        json={"book_id": bid, "title": "Smoke session"},
+        json={"book_id": book_id, "title": "Smoke session"},
     ).json()["id"]
 
     def _fake_stream() -> object:
