@@ -25,6 +25,24 @@ def test_sentence_chunk_count_and_overlap() -> None:
     assert chunks[2]["text"] == "Two! Three?"
 
 
+def test_sentence_chunking_splits_russian_punctuation() -> None:
+    """B05: Russian uses the same . ! ? and Unicode ellipsis as sentence boundaries."""
+    text = "Первое предложение. Второе! Третье?"
+    chunks = SentenceChunking(overlap=0).chunk(text, metadata={"book_id": 1})
+    assert len(chunks) == 3
+    assert chunks[0]["text"] == "Первое предложение."
+    assert chunks[1]["text"] == "Второе!"
+    assert chunks[2]["text"] == "Третье?"
+
+
+def test_sentence_chunking_splits_on_unicode_ellipsis() -> None:
+    text = "Начало… Конец."
+    chunks = SentenceChunking(overlap=0).chunk(text, metadata={"book_id": 1})
+    assert len(chunks) == 2
+    assert chunks[0]["text"] == "Начало…"
+    assert chunks[1]["text"] == "Конец."
+
+
 def test_fixed_size_chunking_overlap_and_boundaries() -> None:
     text = "one two three four five six seven eight"
     chunks = FixedSizeChunking(chunk_size=4, overlap_ratio=0.25).chunk(text, metadata={"book_id": 1})

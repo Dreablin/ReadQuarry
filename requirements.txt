@@ -6,6 +6,7 @@ python-multipart>=0.0.18
 ebooklib>=0.18
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
+# Default embedding model: paraphrase-multilingual-MiniLM-L12-v2 (384-dim, RU+EN; downloaded on first use).
 sentence-transformers>=3.0.0
 chromadb>=0.5.0
 tantivy>=0.22.0

@@ -37,7 +37,8 @@ class SentenceChunking(ChunkingStrategy):
         self.overlap = max(0, overlap)
 
     def chunk(self, text: str, metadata: dict) -> list[dict]:
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+        # Latin and Cyrillic sentences: . ! ? and Unicode ellipsis (…).
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?…])\s+", text.strip()) if s.strip()]
         chunks: list[dict] = []
         for i, sentence in enumerate(sentences):
             chunk_text = sentence

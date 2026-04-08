@@ -6,7 +6,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from config import settings
-from src.core.embeddings import EmbeddingService
+from src.api.settings import get_settings
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
 from src.core.hybrid_search import HybridSearch
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
@@ -62,7 +63,11 @@ def _chroma_query_to_results(raw: dict[str, Any], top_k: int) -> list[dict[str, 
 
 @router.post("/semantic")
 def semantic_search(payload: SemanticSearchRequest) -> dict:
-    embedding_service = EmbeddingService()
+    app_settings = get_settings()
+    embedding_service = EmbeddingService(
+        model_name=str(app_settings.get("embedding_model") or DEFAULT_EMBEDDING_MODEL),
+        device=str(app_settings.get("embedding_device") or "cpu"),
+    )
     query_embedding = embedding_service.embed_text(payload.query)
     store = VectorStore(persist_directory=str(settings.data_dir / "chroma"))
     collection_name = f"book_{payload.book_id}"

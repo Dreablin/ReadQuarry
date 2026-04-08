@@ -36,6 +36,38 @@ def test_search_engine_phrase_search(tmp_path: Path) -> None:
     assert results[0]["chunk_id"] == "1"
 
 
+def test_search_engine_russian_tokens_and_casefold(tmp_path: Path) -> None:
+    """B05: exact search tokenizes Cyrillic; matching is case-insensitive via casefold."""
+    engine = SearchEngine(index_dir=str(tmp_path / "ru"))
+    engine.index_documents(
+        [
+            {
+                "chunk_id": "1",
+                "text": "Это книга про зайца и лес.",
+                "chapter": "1",
+                "chunk_index": 0,
+            },
+        ]
+    )
+    assert len(engine.search("книга")) == 1
+    assert len(engine.search("КНИГА")) == 1
+    assert engine.search("книга")[0]["chunk_id"] == "1"
+
+
+def test_search_engine_russian_multiword_ranks_higher_match(tmp_path: Path) -> None:
+    engine = SearchEngine(index_dir=str(tmp_path / "ru2"))
+    engine.index_documents(
+        [
+            {"chunk_id": "1", "text": "белый заяц в лесу", "chapter": "1", "chunk_index": 0},
+            {"chunk_id": "2", "text": "белый медведь на севере", "chapter": "1", "chunk_index": 1},
+        ]
+    )
+    results = engine.search("белый заяц", max_results=2)
+    assert len(results) == 2
+    assert results[0]["chunk_id"] == "1"
+    assert results[1]["chunk_id"] == "2"
+
+
 def test_search_engine_word_search_returns_ranked_subset(tmp_path: Path) -> None:
     engine = SearchEngine(index_dir=str(tmp_path / "rank"))
     engine.index_documents(

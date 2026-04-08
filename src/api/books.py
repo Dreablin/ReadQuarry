@@ -10,8 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from config import settings
+from src.api.settings import get_settings
 from src.core.book_processor import BookProcessor
-from src.core.embeddings import EmbeddingService
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 from src.db.database import get_db
@@ -79,9 +80,13 @@ async def upload_book(
     destination = uploads_dir / f"{book_id}_{file.filename}"
     destination.write_bytes(content)
 
+    app_settings = get_settings()
     processor = BookProcessor(
         parser_registry=_parser_registry(),
-        embedding_service=EmbeddingService(),
+        embedding_service=EmbeddingService(
+            model_name=str(app_settings.get("embedding_model") or DEFAULT_EMBEDDING_MODEL),
+            device=str(app_settings.get("embedding_device") or "cpu"),
+        ),
         vector_store=VectorStore(persist_directory=str(settings.data_dir / "chroma")),
         search_engine=SearchEngine(
             index_dir=str(settings.data_dir / "tantivy_index" / f"book_{book_id}")

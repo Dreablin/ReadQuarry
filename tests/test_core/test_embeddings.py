@@ -1,4 +1,10 @@
-from src.core.embeddings import EmbeddingService
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
+
+
+def test_default_embedding_model_is_multilingual() -> None:
+    """B05: default model must support Russian and English (not English-only MiniLM)."""
+    assert DEFAULT_EMBEDDING_MODEL == "paraphrase-multilingual-MiniLM-L12-v2"
+    assert EmbeddingService().model_name == DEFAULT_EMBEDDING_MODEL
 
 
 def test_embedding_service_single_text_shape() -> None:

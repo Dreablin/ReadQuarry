@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from config import settings as app_config
+from src.core.embeddings import DEFAULT_EMBEDDING_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ DEFAULTS: dict[str, object] = {
     "model_id": "gpt-4o",
     "max_tokens": 2048,
     "temperature": 0.3,
-    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_model": DEFAULT_EMBEDDING_MODEL,
     "embedding_device": "cpu",
     "semantic_top_k": 5,
     "exact_results": 5,

@@ -3,9 +3,12 @@ from __future__ import annotations
 import hashlib
 import random
 
+# Multilingual MiniLM (384-dim): Russian, English, and 50+ other languages.
+DEFAULT_EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+
 
 class EmbeddingService:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: str = "cpu") -> None:
+    def __init__(self, model_name: str = DEFAULT_EMBEDDING_MODEL, device: str = "cpu") -> None:
         self.model_name = model_name
         self.device = device
         self.dimension = 384

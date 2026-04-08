@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 
 
@@ -52,21 +53,26 @@ class SearchEngine:
         self._persist()
 
     def search(self, query: str, max_results: int = 5) -> list[dict]:
-        query_lower = query.strip().lower()
-        if not query_lower:
+        """Match using Unicode casefolding and word tokens (Latin, Cyrillic, etc.)."""
+        raw = query.strip()
+        if not raw:
             return []
 
-        phrase_match = re.fullmatch(r'"(.+)"', query_lower)
+        q_fold = raw.casefold()
+        phrase_match = re.fullmatch(r'"(.+)"', q_fold)
         if phrase_match:
-            phrase = phrase_match.group(1)
-            matched = [doc for doc in self._documents if phrase in doc["text"].lower()]
+            phrase = phrase_match.group(1).strip()
+            matched = [doc for doc in self._documents if phrase in doc["text"].casefold()]
             return matched[:max_results]
 
-        terms = [t for t in re.split(r"\s+", query_lower) if t]
+        terms = re.findall(r"\w+", q_fold, flags=re.UNICODE)
+        if not terms:
+            return []
         scored: list[tuple[int, dict]] = []
         for doc in self._documents:
-            text = doc["text"].lower()
-            score = sum(text.count(term) for term in terms)
+            tokens = re.findall(r"\w+", doc["text"].casefold(), flags=re.UNICODE)
+            ctr = Counter(tokens)
+            score = sum(ctr[t] for t in terms)
             if score > 0:
                 scored.append((score, doc))
         scored.sort(key=lambda item: item[0], reverse=True)
