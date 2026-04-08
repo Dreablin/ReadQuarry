@@ -30,6 +30,22 @@ function fieldId(key) {
   return `settings-${key}`;
 }
 
+/** @param {"llm" | "embeddings"} which */
+function activateSettingsTab(which) {
+  const llmPanel = document.getElementById("settings-panel-llm");
+  const embPanel = document.getElementById("settings-panel-embeddings");
+  const tabLlm = document.getElementById("settings-tab-llm");
+  const tabEmb = document.getElementById("settings-tab-embeddings");
+  if (!llmPanel || !embPanel || !tabLlm || !tabEmb) return;
+  const llmActive = which === "llm";
+  llmPanel.classList.toggle("settings-tab-panel--hidden", !llmActive);
+  embPanel.classList.toggle("settings-tab-panel--hidden", llmActive);
+  tabLlm.setAttribute("aria-selected", String(llmActive));
+  tabEmb.setAttribute("aria-selected", String(!llmActive));
+  tabLlm.classList.toggle("settings-tab--active", llmActive);
+  tabEmb.classList.toggle("settings-tab--active", !llmActive);
+}
+
 /** Show Ollama or Cloud LLM field group based on `settings-llm_mode` (CSS display, no DOM removal). */
 function applyLlmModeVisibility() {
   const modeEl = document.getElementById("settings-llm_mode");
@@ -116,6 +132,16 @@ export function initSettings(options = {}) {
   }
   applyLlmModeVisibility();
 
+  const tabLlmBtn = document.getElementById("settings-tab-llm");
+  const tabEmbBtn = document.getElementById("settings-tab-embeddings");
+  if (tabLlmBtn) {
+    tabLlmBtn.addEventListener("click", () => activateSettingsTab("llm"));
+  }
+  if (tabEmbBtn) {
+    tabEmbBtn.addEventListener("click", () => activateSettingsTab("embeddings"));
+  }
+  activateSettingsTab("llm");
+
   function setFeedback(text) {
     if (feedback) feedback.textContent = text;
   }
@@ -130,6 +156,7 @@ export function initSettings(options = {}) {
     } catch (e) {
       setFeedback(e instanceof Error ? e.message : "Failed to load settings");
     }
+    activateSettingsTab("llm");
     dialog.showModal();
   }
 
@@ -167,6 +194,7 @@ export function initSettings(options = {}) {
         if (data && typeof data === "object") {
           fillForm(/** @type {Record<string, unknown>} */ (data));
         }
+        activateSettingsTab("llm");
         setFeedback("Defaults restored.");
       } catch (e) {
         setFeedback(e instanceof Error ? e.message : "Reset failed");

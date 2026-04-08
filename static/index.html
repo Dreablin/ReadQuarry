@@ -127,7 +127,35 @@
     >
       <form id="settings-form" method="dialog">
         <h2 id="settings-title">Settings</h2>
-        <div class="settings-form-grid">
+        <div class="settings-dialog-body">
+          <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button
+              type="button"
+              id="settings-tab-llm"
+              class="settings-tab settings-tab--active"
+              role="tab"
+              aria-selected="true"
+              aria-controls="settings-panel-llm"
+            >
+              LLM
+            </button>
+            <button
+              type="button"
+              id="settings-tab-embeddings"
+              class="settings-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="settings-panel-embeddings"
+            >
+              Embeddings &amp; Search
+            </button>
+          </div>
+          <div
+            id="settings-panel-llm"
+            class="settings-tab-panel"
+            role="tabpanel"
+            aria-labelledby="settings-tab-llm"
+          >
           <fieldset class="settings-fieldset">
             <legend>LLM</legend>
             <label for="settings-llm_mode">Mode</label>
@@ -173,6 +201,13 @@
               />
             </div>
           </fieldset>
+          </div>
+          <div
+            id="settings-panel-embeddings"
+            class="settings-tab-panel settings-tab-panel--hidden"
+            role="tabpanel"
+            aria-labelledby="settings-tab-embeddings"
+          >
           <fieldset class="settings-fieldset">
             <legend>Embeddings &amp; search</legend>
             <label for="settings-embedding_model">Embedding model</label>
@@ -194,6 +229,7 @@
               min="1"
             />
           </fieldset>
+          </div>
         </div>
         <p id="settings-feedback" class="settings-feedback" role="status" aria-live="polite"></p>
         <div class="dialog__actions">

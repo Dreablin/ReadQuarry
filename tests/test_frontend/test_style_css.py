@@ -61,6 +61,12 @@ def test_style_css_settings_llm_group_hidden(style_css: str) -> None:
     assert "settings-llm-group--hidden" in style_css
 
 
+def test_style_css_settings_tab_panels(style_css: str) -> None:
+    """B07: Inactive settings tab panel is hidden via CSS."""
+    assert "settings-tab-panel--hidden" in style_css
+    assert "settings-tabs" in style_css
+
+
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
     for cls in (
         ".app-header",

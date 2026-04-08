@@ -78,6 +78,17 @@ def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-llm_mode" in index_html
 
 
+def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
+    """B07: Settings dialog uses LLM vs Embeddings & Search tab panels."""
+    assert "settings-tab-llm" in index_html
+    assert "settings-tab-embeddings" in index_html
+    assert "settings-panel-llm" in index_html
+    assert "settings-panel-embeddings" in index_html
+    assert "role=\"tablist\"" in index_html
+    assert "role=\"tab\"" in index_html
+    assert "role=\"tabpanel\"" in index_html
+
+
 def test_index_html_settings_llm_ollama_cloud_groups(index_html: str) -> None:
     """B06: LLM fields split into Ollama vs Cloud containers toggled by mode."""
     assert "settings-llm-group-ollama" in index_html

@@ -488,9 +488,48 @@ dialog.dialog--settings {
   padding: var(--space-md);
 }
 
-.dialog--settings .settings-form-grid {
-  display: grid;
+.dialog--settings .settings-dialog-body {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-md);
+  min-height: 0;
+}
+
+.dialog--settings .settings-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border);
+  margin: 0 0 var(--space-sm);
+  padding: 0;
+}
+
+.dialog--settings .settings-tab {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  padding: var(--space-sm) var(--space-md);
+  margin: 0 0 -1px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.dialog--settings .settings-tab:hover {
+  color: var(--color-text);
+}
+
+.dialog--settings .settings-tab--active {
+  color: var(--color-text);
+  border-color: var(--color-border);
+  border-bottom: 1px solid var(--color-bg-elevated);
+  background: var(--color-bg-elevated);
+}
+
+.dialog--settings .settings-tab-panel--hidden {
+  display: none;
 }
 
 .dialog--settings .settings-fieldset {
