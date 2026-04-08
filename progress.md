@@ -6,16 +6,16 @@
 
 ## Current Status
 
-**Phase**: 6 — Bug Fixes
+**Phase**: 7 — Bug Fixes (Round 2)
 **Next Task**: —
-**Last Completed**: B12
-**Total Progress**: 12 / 12 tasks
+**Last Completed**: B16
+**Total Progress**: 17 / 17 tasks
 
 ---
 
 ## Task Log
 
-### Phase 6: Bug Fixes
+### Phase 6: Bug Fixes (Round 1)
 
 - [x] **B01**: Unify book storage — move from in-memory dict to SQLAlchemy DB so chat sessions can find uploaded books — see BUGS.md B01
 - [x] **B02**: Wire semantic search to real EmbeddingService + VectorStore instead of placeholder — see BUGS.md B02
@@ -29,6 +29,14 @@
 - [x] **B10**: Add debug log viewer as third navigation screen — see BUGS.md B10
 - [x] **B11**: Add detailed logging during book ingestion pipeline — see BUGS.md B11
 - [x] **B12**: Document Ralph Loop scratchpad safety cap requirement — see BUGS.md B12
+
+### Phase 7: Bug Fixes (Round 2)
+
+- [x] **B17**: Fix navigation tabs — CSS `display: flex` on `.panel--logs`/`.panel--search` overrides HTML `hidden` attribute, making Logs always visible — see BUGS.md B17
+- [x] **B13**: Duplicate book upload fails silently — add backend logging and show error inside upload dialog — see BUGS.md B13
+- [x] **B14**: "Test LLM" button is a stub — wire to real LLMClient connectivity check — see BUGS.md B14
+- [x] **B15**: Settings dialog action buttons unreadable — add themed CSS for `.dialog__actions button` — see BUGS.md B15
+- [x] **B16**: Add "Clear All Data" button to delete all books and reset databases — see BUGS.md B16
 
 ---
 
@@ -48,6 +56,11 @@
 | 2026-04-07 | B10 | `RingBufferHandler` + deque(500) in `src/api/logs.py`; `GET /api/logs`; `install_memory_log_handler()` from `main.py`; `#main-nav-logs`, `data-view="logs"`, `log-viewer.js` polls and scrolls `<pre>` | BUGS.md option (b); polling while Logs tab active only |
 | 2026-04-07 | B11 | `logger.info` in `BookProcessor.process_book` (parser, chapters, chunker, embeddings, ChromaDB collection+count, SearchEngine `index_path`+doc count, elapsed); upload logs save path, dirs, success | BUGS mentions Tantivy; app uses `SearchEngine` JSON index — logged as SearchEngine path |
 | 2026-04-07 | B12 | Document finite `max_iterations` in `prompt.md` + `.cursor/rules/ralph-loop.mdc`; regression test `test_prompt_documents_ralph_loop_finite_max_iterations_safety` | BUGS.md B12: avoid unlimited loop when completion promise does not stop the scheduler |
+| 2026-04-07 | B17 | `.view--hidden { display: none !important }`; `setView` uses `classList.toggle` on chat/refs/search/logs; HTML uses `view--hidden` on `#view-search`/`#view-logs` (no boolean `hidden`) | BUGS.md B17 approach (a): author `display:flex` overrides `[hidden]` |
+| 2026-04-07 | B13 | `logger.warning` on duplicate hash before 409; `#upload-feedback` + `.upload-feedback--error` in dialog; `book-upload.js` shows `error.message` in-dialog; still calls `onError` for status bar | BUGS.md B13 |
+| 2026-04-07 | B14 | `POST /test-llm` uses `LLMClient(..., timeout=10)` + minimal `chat_completion`; HTTP 200 + `{status, detail?}`; cloud empty `api_key` short-circuit; `settings.js` + `.settings-feedback--ok/--error` | BUGS.md B14; mock `LLMClient` in API tests via `settings_module` |
+| 2026-04-07 | B15 | Added explicit `.dialog__actions button` dark-theme styles (text/background/border/radius/hover/focus/active) and accent primary styles for `#settings-save` and `#upload-submit` | BUGS.md B15 readability and contrast in settings/upload dialogs |
+| 2026-04-07 | B16 | `DELETE /api/books` clears uploads/chroma/index per book then `delete(Book)`; Settings danger zone + `clearAllBooks()` + confirm; `app.js` refreshes list, clears chat | BUGS.md B16 |
 
 ---
 

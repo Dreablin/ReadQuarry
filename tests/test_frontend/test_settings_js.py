@@ -66,3 +66,18 @@ def test_settings_js_save_flow(settings_js: str) -> None:
 
 def test_settings_js_feedback_or_status(settings_js: str) -> None:
     assert "settings-feedback" in settings_js or "feedback" in settings_js.lower()
+
+
+def test_settings_js_test_llm_interprets_ok_and_error(settings_js: str) -> None:
+    """B14: Test LLM shows human-readable success/error from API JSON."""
+    assert "Connected to" in settings_js
+    assert "res.status" in settings_js
+    assert "settings-feedback--ok" in settings_js
+    assert "settings-feedback--error" in settings_js
+
+
+def test_settings_js_clear_all_data_wiring(settings_js: str) -> None:
+    """B16: Clear all uses API and confirm before destructive call."""
+    assert "clearAllBooks" in settings_js
+    assert "Delete all books and conversations" in settings_js
+    assert "settings-clear-all" in settings_js

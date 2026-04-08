@@ -172,3 +172,159 @@
 **Expected behavior**: The loop stops after outputting the completion promise.
 **Actual behavior**: The loop continues indefinitely, burning iterations.
 **Notes**: This is an infrastructure issue. When starting the next Ralph Loop, always set `max_iterations` to a reasonable finite number (e.g. 50 or 100) as a safety net. The completion promise should still be the primary stop mechanism, but `max_iterations` acts as a hard cap. This bug is "fixed" by deleting the stale scratchpad (already done) and ensuring the next loop start uses a finite cap.
+
+---
+
+## B13 — Duplicate book upload fails silently — no visible error in UI or backend logs
+
+**Severity**: major
+**Where**: `src/api/books.py`, `static/js/components/book-upload.js`
+**Steps to reproduce**:
+1. Upload an EPUB file successfully.
+2. Try to upload the exact same EPUB file again.
+3. Observe: nothing happens — no error message visible, no log entry in the Logs tab.
+
+**Expected behavior**: A clear, visible error message tells the user the book already exists. The backend logs record the duplicate attempt.
+**Actual behavior**: The backend correctly returns HTTP 409 with `{"detail": "Book with this content already exists"}`, but:
+- **Backend**: There is no `logger.warning(...)` call on the duplicate-detection path (line ~64 of `books.py`), so the Logs viewer shows nothing.
+- **Frontend**: The error is sent to `options.onError(error)` which calls `setStatus(err.message)` — this updates the **status bar** at the very bottom of the page. However, the **upload dialog is still open on top**, hiding the status bar. The user never sees the message.
+
+**Fix requirements**:
+1. **Backend** (`src/api/books.py`): Add `logger.warning("Duplicate book upload rejected: file_hash=%s filename=%r", file_hash, file.filename)` before raising the 409, so the attempt appears in the Logs tab.
+2. **Frontend** (`static/js/components/book-upload.js`): In the `catch` block of the form submit handler, display the error **inside the upload dialog** (e.g. in a dedicated `<p id="upload-feedback">` element) rather than only in the status bar. The dialog should remain open so the user can see the error message and try a different file. Make the error text clearly visible (e.g. red/warning color).
+
+---
+
+## B14 — "Test LLM" button always shows success — endpoint is a stub
+
+**Severity**: major
+**Where**: `src/api/settings.py` (endpoint `POST /api/settings/test-llm`), `src/core/llm_client.py`, `static/js/components/settings.js`
+**Steps to reproduce**:
+1. Open Settings.
+2. Set LLM mode to Ollama with a URL pointing to a non-running Ollama instance (e.g. `http://localhost:99999`).
+3. Click "Test LLM".
+4. Observe: feedback says `{"status":"ok"}`.
+
+**Expected behavior**: The test actually connects to the configured LLM endpoint. On failure (connection refused, invalid API key, model not found, timeout) the UI shows a descriptive error. On success, it shows confirmation (e.g. "Connected to llama3.2 on Ollama").
+**Actual behavior**: The endpoint (`src/api/settings.py` line 131) is a placeholder that always returns `{"status": "ok"}` without making any network call.
+
+**Fix requirements**:
+1. **Backend** (`src/api/settings.py`): Replace the stub `test_llm` endpoint with real logic:
+   - Read current `_SETTINGS` (or accept an optional request body to test before saving).
+   - Instantiate `LLMClient` from `src/core/llm_client.py` with those settings.
+   - For **Ollama mode**: call `llm_client.chat_completion(messages=[{"role":"user","content":"ping"}], max_tokens=1)` inside a try/except. Catch `openai.APIConnectionError`, `openai.AuthenticationError`, timeouts, and any other `Exception`. Return `{"status": "ok", "model": "<model>", "mode": "<mode>"}` on success, or `{"status": "error", "detail": "<error description>"}` on failure. Set HTTP status to 200 on success and **200 on failure too** (so the frontend JS can always parse the JSON body — the `_jsonOrThrow` helper throws on non-2xx).
+   - For **Cloud mode**: same approach — attempt a minimal completion to validate API key + base URL.
+   - Add a timeout (e.g. 10 seconds) so the test doesn't hang forever.
+   - Log the result with `logger.info(...)` on success and `logger.warning(...)` on failure.
+2. **Frontend** (`static/js/components/settings.js`): Update the Test LLM click handler to interpret the response. If `res.status === "error"`, display the error clearly in red. If `res.status === "ok"`, display a green success message (e.g. "Connected to {model} via {mode}").
+
+---
+
+## B15 — Settings dialog action buttons have poor contrast — unreadable on dark theme
+
+**Severity**: minor
+**Where**: `static/css/style.css`, `static/index.html`
+**Steps to reproduce**:
+1. Open Settings dialog.
+2. Look at the bottom row of buttons: Close, Reset defaults, Test LLM, Save.
+
+**Expected behavior**: All buttons are clearly readable with good contrast against the dark background.
+**Actual behavior**: The buttons in `.dialog__actions` have **no custom CSS styling** — they use browser-default `<button>` appearance, which renders as light gray buttons with dark text on some browsers, or as nearly invisible gray-on-gray on others. On a dark theme with `background: #12141f`, they look washed out and hard to read.
+
+**Fix requirements** (in `static/css/style.css`):
+1. Add explicit styling for `.dialog__actions button` with:
+   - Readable text color (e.g. `var(--color-text)` or `#fff`).
+   - Visible background (e.g. `var(--color-surface-strong)` or a subtle gradient).
+   - Border matching the theme (e.g. `1px solid var(--color-border)`).
+   - Rounded corners matching the design system (e.g. `var(--radius-sm)`).
+   - Hover state with lighter background or glow.
+   - Cursor pointer.
+2. Optionally give the "Save" button (primary action) a distinct accent style (e.g. gradient from `--color-accent-start` to `--color-accent-end`, white text) to make it stand out from secondary buttons (Close, Reset, Test).
+3. Apply the same fix to `.dialog--upload .dialog__actions button` as well (the upload dialog has the same issue).
+
+---
+
+## B16 — No "Clear All" button to delete all books and reset databases
+
+**Severity**: major
+**Where**: `src/api/books.py`, `static/index.html`, `static/js/components/settings.js`, `static/js/api.js`
+**Steps to reproduce**:
+1. Upload several books.
+2. Want to start fresh / clear all data.
+3. No way to do this without manually deleting files in `data/`.
+
+**Expected behavior**: A "Clear All Data" button in the Settings dialog (or a dedicated section) that deletes all books and associated data (SQLite rows, ChromaDB collections, search indices, uploaded files).
+**Actual behavior**: Only individual book deletion exists (`DELETE /api/books/{book_id}`) — and it's only exposed in the API, not in the frontend UI.
+
+**Fix requirements**:
+1. **Backend** (`src/api/books.py`): Add a `DELETE /api/books` (or `POST /api/books/clear-all`) endpoint that:
+   - Queries all `Book` rows from the database.
+   - For each book: deletes its ChromaDB collection (`book_{id}`), removes its search index directory (`tantivy_index/book_{id}`), and removes its uploaded file from `data/uploads/`.
+   - Deletes all `Book` rows from the SQLite DB (which cascades to paragraphs, chunks, chat sessions, chat messages).
+   - Logs the operation with `logger.info("Cleared all books: count=%d", count)`.
+   - Returns `{"status": "cleared", "deleted_count": N}`.
+2. **Frontend API** (`static/js/api.js`): Add `clearAllBooks()` function that calls the new endpoint.
+3. **Frontend UI** (`static/index.html`, `static/js/components/settings.js` or `static/js/app.js`): Add a "Clear All Data" button in the Settings dialog (in the actions area or as a separate danger zone section). On click:
+   - Show a confirmation prompt (`confirm("Delete all books and conversations? This cannot be undone.")` or a custom confirmation dialog).
+   - If confirmed, call `clearAllBooks()`.
+   - On success, refresh the book list dropdown, clear current chat, and show feedback.
+   - Style the button with a warning/danger color (e.g. red tint) to signal destructiveness.
+
+---
+
+## B17 — Navigation tabs always show Logs panel — CSS `display: flex` overrides HTML `hidden` attribute
+
+**Severity**: critical
+**Where**: `static/css/style.css`, `static/js/app.js`
+**Steps to reproduce**:
+1. Open the app.
+2. Click "Discussion" — Logs panel is visible.
+3. Click "Search" — Logs panel is visible.
+4. Click "Logs" — Logs panel is visible.
+5. Discussion and Search content are never accessible.
+
+**Expected behavior** (per PRD §3.2, §3.3 and B09):
+- **Discussion** tab shows the chat panel (left) + references panel (right) in split layout.
+- **Search** tab shows the search form + results in a single-column layout.
+- **Logs** tab shows the log viewer in a single-column layout.
+- Only the active view's panels are visible.
+
+**Actual behavior**: Both `#view-search` (`.panel--search`) and `#view-logs` (`.panel--logs`) are **always visible** despite having the HTML `hidden` attribute. The Logs panel appears on top because it comes later in the DOM and shares the same grid cell.
+
+**Root cause**: CSS rules override the `hidden` attribute. In `style.css`:
+```css
+.panel--logs {
+  display: flex;           /* ← overrides [hidden] { display: none } */
+  flex-direction: column;
+  min-height: 0;
+}
+.panel--search {
+  display: flex;           /* ← same problem */
+  flex-direction: column;
+  min-height: 0;
+}
+```
+The HTML `hidden` attribute works by setting `display: none` via the browser's user-agent stylesheet, but **any author CSS rule setting `display` overrides it** because author styles have higher priority than UA styles. The `.panel--logs` and `.panel--search` rules set `display: flex`, so `hidden` has no effect.
+
+**Fix requirements** — choose ONE approach:
+
+**(a) Class-based visibility (preferred)**: Instead of using the HTML `hidden` attribute, toggle a CSS class (e.g. `view--hidden`) that uses `display: none !important`. In `app.js` `setView()`, replace `viewSearch.hidden = ...` / `viewLogs.hidden = ...` with `viewSearch.classList.toggle("view--hidden", !showSearch)` / `viewLogs.classList.toggle("view--hidden", !showLogs)`. Do the same for `chatPanel` and `refsPanel`. Add `.view--hidden { display: none !important; }` to `style.css`. Remove the `hidden` attribute from the initial HTML for `#view-search` and `#view-logs` and add the `view--hidden` class instead.
+
+**(b) Targeted `[hidden]` override**: Add rules in `style.css`:
+```css
+.panel--search[hidden],
+.panel--logs[hidden] {
+  display: none;
+}
+```
+This ensures `hidden` wins when the attribute is present. Less invasive but more fragile.
+
+**(c)** Fix the existing `.panel--search` / `.panel--logs` rules to not set `display` unconditionally — move `display: flex` into a `:not([hidden])` selector:
+```css
+.panel--logs:not([hidden]) {
+  display: flex;
+  ...
+}
+```
+
+Approach **(a)** is recommended because it is robust, explicit, and consistent with how the nav tab styling already works (class-based toggling).

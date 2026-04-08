@@ -76,6 +76,12 @@ export async function deleteBook(bookId) {
   return _jsonOrThrow(res);
 }
 
+/** Deletes all books and associated stored data (Chroma, indices, uploads). */
+export async function clearAllBooks() {
+  const res = await fetch("/api/books", { method: "DELETE" });
+  return _jsonOrThrow(res);
+}
+
 /**
  * @param {number|string} bookId
  * @param {Record<string, string|number|boolean>} [query]

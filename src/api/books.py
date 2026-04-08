@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from config import settings
@@ -58,6 +58,11 @@ async def upload_book(
 
     existing = db.scalars(select(Book).where(Book.file_hash == file_hash)).first()
     if existing is not None:
+        logger.warning(
+            "Duplicate book upload rejected: file_hash=%s filename=%r",
+            file_hash,
+            file.filename,
+        )
         raise HTTPException(status_code=409, detail="Book with this content already exists")
 
     stem = Path(file.filename).stem
@@ -135,6 +140,25 @@ async def upload_book(
 def list_books(db: Session = Depends(get_db)) -> list[dict]:
     books = db.scalars(select(Book).order_by(Book.id.asc())).all()
     return [_book_to_response(b) for b in books]
+
+
+@router.delete("")
+def delete_all_books(db: Session = Depends(get_db)) -> dict:
+    """Remove every book: SQLite rows (cascade), Chroma collections, search indices, upload files."""
+    books = list(db.scalars(select(Book).order_by(Book.id.asc())).all())
+    count = len(books)
+    vs = VectorStore(persist_directory=str(settings.data_dir / "chroma"))
+    uploads_dir = settings.data_dir / "uploads"
+    for book in books:
+        destination = uploads_dir / f"{book.id}_{book.file_name}"
+        destination.unlink(missing_ok=True)
+        vs.delete_collection(f"book_{book.id}")
+        shutil.rmtree(settings.data_dir / "tantivy_index" / f"book_{book.id}", ignore_errors=True)
+    if count:
+        db.execute(delete(Book))
+        db.commit()
+    logger.info("Cleared all books: count=%d", count)
+    return {"status": "cleared", "deleted_count": count}
 
 
 @router.get("/{book_id}")

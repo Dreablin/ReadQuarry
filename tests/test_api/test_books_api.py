@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from ebooklib import epub
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
+from src.api import books as books_module
 from src.db.database import Base, get_db
 
 
@@ -184,3 +186,108 @@ def test_books_api_rejects_duplicate_upload_same_bytes(tmp_path: Path) -> None:
             data={"chunking_strategy": "paragraph"},
         )
     assert second.status_code == 409
+
+
+def test_books_api_duplicate_upload_logs_warning(
+    caplog: pytest.LogCaptureFixture, tmp_path: Path
+) -> None:
+    """B13: duplicate upload path logs a warning with hash and filename for the log viewer."""
+    caplog.set_level(logging.WARNING, logger="src.api.books")
+    client = TestClient(app)
+    sample = tmp_path / "dup_warn.epub"
+    _write_minimal_epub(sample, unique_token="b13-dup-warn-token")
+    with sample.open("rb") as f:
+        assert (
+            client.post(
+                "/api/books/upload",
+                files={"file": ("dup_warn.epub", f, "application/epub+zip")},
+                data={"chunking_strategy": "paragraph"},
+            ).status_code
+            == 200
+        )
+    with sample.open("rb") as f:
+        r = client.post(
+            "/api/books/upload",
+            files={"file": ("dup_warn.epub", f, "application/epub+zip")},
+            data={"chunking_strategy": "paragraph"},
+        )
+    assert r.status_code == 409
+    warns = [rec for rec in caplog.records if rec.name == "src.api.books" and rec.levelno == logging.WARNING]
+    assert warns, "expected WARNING from books API on duplicate"
+    joined = " ".join(rec.getMessage() for rec in warns)
+    assert "Duplicate book upload rejected" in joined
+    assert "dup_warn.epub" in joined
+
+
+def test_books_api_delete_all_clears_books_and_returns_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B16: DELETE /api/books removes every book, files, indices; returns deleted_count."""
+    memory_db = _make_memory_session()
+
+    def _override_db():
+        yield memory_db
+
+    monkeypatch.setattr(books_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    app.dependency_overrides[get_db] = _override_db
+    try:
+        client = TestClient(app)
+        for name, token in (("a.epub", "clear-a"), ("b.epub", "clear-b")):
+            p = tmp_path / name
+            _write_minimal_epub(p, unique_token=token)
+            with p.open("rb") as f:
+                r = client.post(
+                    "/api/books/upload",
+                    files={"file": (name, f, "application/epub+zip")},
+                    data={"chunking_strategy": "paragraph"},
+                )
+            assert r.status_code == 200, r.text
+
+        listed = client.get("/api/books")
+        assert listed.status_code == 200
+        assert len(listed.json()) == 2
+
+        cleared = client.delete("/api/books")
+        assert cleared.status_code == 200
+        data = cleared.json()
+        assert data["status"] == "cleared"
+        assert data["deleted_count"] == 2
+
+        empty = client.get("/api/books")
+        assert empty.status_code == 200
+        assert empty.json() == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_books_api_delete_all_logs_info(
+    caplog: pytest.LogCaptureFixture, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B16: clear-all logs deleted count at INFO."""
+    caplog.set_level(logging.INFO, logger="src.api.books")
+    memory_db = _make_memory_session()
+
+    def _override_db():
+        yield memory_db
+
+    monkeypatch.setattr(books_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    app.dependency_overrides[get_db] = _override_db
+    try:
+        client = TestClient(app)
+        p = tmp_path / "one.epub"
+        _write_minimal_epub(p, unique_token="clear-log")
+        with p.open("rb") as f:
+            assert (
+                client.post(
+                    "/api/books/upload",
+                    files={"file": ("one.epub", f, "application/epub+zip")},
+                    data={"chunking_strategy": "paragraph"},
+                ).status_code
+                == 200
+            )
+        client.delete("/api/books")
+        infos = [r for r in caplog.records if r.name == "src.api.books" and "Cleared all books" in r.getMessage()]
+        assert infos
+        assert "count=1" in infos[-1].getMessage()
+    finally:
+        app.dependency_overrides.clear()

@@ -87,10 +87,10 @@ function wireMainViews(bookList, refs, setStatus, logViewer) {
   function setView(mode) {
     const showSearch = mode === "search";
     const showLogs = mode === "logs";
-    if (chatPanel) chatPanel.hidden = showSearch || showLogs;
-    if (refsPanel) refsPanel.hidden = showSearch || showLogs;
-    if (viewSearch) viewSearch.hidden = !showSearch;
-    if (viewLogs) viewLogs.hidden = !showLogs;
+    if (chatPanel) chatPanel.classList.toggle("view--hidden", showSearch || showLogs);
+    if (refsPanel) refsPanel.classList.toggle("view--hidden", showSearch || showLogs);
+    if (viewSearch) viewSearch.classList.toggle("view--hidden", !showSearch);
+    if (viewLogs) viewLogs.classList.toggle("view--hidden", !showLogs);
     if (mainEl) {
       if (showLogs) mainEl.dataset.view = "logs";
       else if (showSearch) mainEl.dataset.view = "search";
@@ -178,7 +178,6 @@ export async function initApp() {
   }
 
   const refs = initReferences();
-  initSettings();
 
   /** @type {{ getSelectedBookId: () => number | null } | null} */
   let bookListRef = null;
@@ -216,6 +215,17 @@ export async function initApp() {
   });
 
   bookListRef = bookList;
+
+  initSettings({
+    onAfterClearAllBooks: async () => {
+      await bookList.refresh();
+      const sel = document.getElementById("book-select");
+      if (sel instanceof HTMLSelectElement) sel.value = "";
+      sessionId = null;
+      chatApi.clearMessages();
+      setStatus("All books and conversations cleared.");
+    },
+  });
 
   initBookUpload({
     onSuccess: async () => {

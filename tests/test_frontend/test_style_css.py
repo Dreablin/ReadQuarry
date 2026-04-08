@@ -67,6 +67,36 @@ def test_style_css_settings_tab_panels(style_css: str) -> None:
     assert "settings-tabs" in style_css
 
 
+def test_style_css_settings_feedback_ok_error(style_css: str) -> None:
+    """B14: Test LLM feedback colors."""
+    assert ".settings-feedback--ok" in style_css
+    assert ".settings-feedback--error" in style_css
+
+
+def test_style_css_settings_clear_all_danger_zone(style_css: str) -> None:
+    """B16: clear-all button and danger zone styling."""
+    assert ".settings-danger-zone" in style_css
+    assert ".btn-danger" in style_css
+
+
+def test_style_css_dialog_action_buttons_themed(style_css: str) -> None:
+    """B15: dialog action buttons must be explicitly themed for dark UI contrast."""
+    assert ".dialog__actions button" in style_css
+    assert "cursor: pointer" in style_css
+    assert "var(--color-text)" in style_css or "#fff" in style_css
+
+
+def test_style_css_dialog_action_buttons_hover(style_css: str) -> None:
+    """B15: action buttons have visible hover/active state."""
+    assert ".dialog__actions button:hover" in style_css
+
+
+def test_style_css_dialog_primary_actions_stand_out(style_css: str) -> None:
+    """B15: primary submit buttons in dialogs have accent styling."""
+    assert "#settings-save" in style_css
+    assert "#upload-submit" in style_css
+
+
 def test_style_css_settings_cloud_warning(style_css: str) -> None:
     """B08: Cloud API key notice uses distinct warning styling."""
     assert "settings-warning" in style_css
@@ -82,6 +112,22 @@ def test_style_css_logs_view_panel(style_css: str) -> None:
     """B10: Logs view full-width and scrollable pre."""
     assert 'data-view="logs"' in style_css or "[data-view=\"logs\"]" in style_css
     assert "log-viewer" in style_css
+
+
+def test_style_css_upload_feedback_error_visible(style_css: str) -> None:
+    """B13: upload dialog inline error styling."""
+    assert ".upload-feedback" in style_css
+    assert "upload-feedback--error" in style_css
+
+
+def test_style_css_view_hidden_beats_panel_display(style_css: str) -> None:
+    """B17: Utility class hides panels even when .panel sets display:flex."""
+    assert ".view--hidden" in style_css
+    assert "important" in style_css.lower()
+    idx = style_css.lower().find(".view--hidden")
+    assert idx != -1
+    snippet = style_css[idx : idx + 120].lower()
+    assert "display" in snippet and "none" in snippet
 
 
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:

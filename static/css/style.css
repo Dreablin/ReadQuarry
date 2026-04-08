@@ -275,6 +275,11 @@ body {
   min-height: 0;
 }
 
+/* B17: beats .panel / .panel--search display:flex so main views can hide reliably */
+.view--hidden {
+  display: none !important;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -557,6 +562,52 @@ dialog.dialog::backdrop {
   margin-top: var(--space-md);
 }
 
+/* B15: explicit themed action buttons for dark dialogs */
+.dialog__actions button {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.05s ease;
+}
+
+.dialog__actions button:hover {
+  background: rgba(72, 82, 118, 0.8);
+  border-color: rgba(150, 170, 230, 0.45);
+  box-shadow: 0 0 0 1px rgba(125, 145, 210, 0.18);
+}
+
+.dialog__actions button:focus-visible {
+  outline: none;
+  border-color: rgba(107, 76, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(107, 76, 255, 0.32);
+}
+
+.dialog__actions button:active {
+  transform: translateY(1px);
+}
+
+#settings-save,
+#upload-submit {
+  border-color: rgba(90, 116, 205, 0.8);
+  background: linear-gradient(90deg, var(--color-accent-start), var(--color-accent-end));
+  color: #fff;
+}
+
+#settings-save:hover,
+#upload-submit:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 0 1px rgba(120, 180, 255, 0.25), 0 6px 16px rgba(20, 26, 50, 0.35);
+}
+
 dialog.dialog--settings {
   max-width: 42rem;
 }
@@ -655,6 +706,39 @@ dialog.dialog--settings {
   line-height: 1.45;
 }
 
+/* B16: destructive clear-all control */
+.dialog--settings .settings-danger-zone {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: var(--radius-md);
+  background: rgba(127, 29, 29, 0.15);
+}
+
+.dialog--settings .settings-danger-zone__text {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #fecaca;
+}
+
+.btn-danger {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: rgba(185, 28, 28, 0.35);
+  color: #fecaca;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(220, 38, 38, 0.55);
+  border-color: rgba(252, 165, 165, 0.65);
+}
+
 .dialog--settings input,
 .dialog--settings select {
   width: 100%;
@@ -667,6 +751,15 @@ dialog.dialog--settings {
   margin: var(--space-sm) 0 0;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+/* B14: Test LLM success / failure */
+.settings-feedback--ok {
+  color: #34d399;
+}
+
+.settings-feedback--error {
+  color: #f87171;
 }
 
 .upload-dropzone {
@@ -689,6 +782,19 @@ dialog.dialog--settings {
 .upload-dropzone--active {
   border-color: rgba(107, 76, 255, 0.85);
   background: rgba(107, 76, 255, 0.12);
+}
+
+/* B13: inline errors in upload dialog (visible while dialog is open) */
+.upload-feedback {
+  margin: 0 0 var(--space-sm);
+  min-height: 1.25em;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.upload-feedback--error {
+  color: #f87171;
 }
 
 .upload-progress {

@@ -51,3 +51,10 @@ def test_app_js_search_or_view_routing(app_js: str) -> None:
     assert "main-nav-discussion" in app_js
     assert "main-nav-search" in app_js
     assert "main-nav-logs" in app_js
+
+
+def test_app_js_set_view_uses_view_hidden_class(app_js: str) -> None:
+    """B17: Toggle visibility with .view--hidden so author CSS cannot override [hidden]."""
+    assert "view--hidden" in app_js
+    assert "classList.toggle" in app_js
+    assert ".hidden =" not in app_js

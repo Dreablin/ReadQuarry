@@ -2,7 +2,7 @@
  * Settings modal: load/save app settings via `/api/settings`.
  */
 
-import { getSettings, resetSettings, testLlm, updateSettings } from "../api.js";
+import { clearAllBooks, getSettings, resetSettings, testLlm, updateSettings } from "../api.js";
 
 /** @type {readonly string[]} */
 const FIELD_KEYS = [
@@ -109,6 +109,7 @@ function readForm() {
  * @param {string} [options.formId]
  * @param {string} [options.openButtonId]
  * @param {string} [options.feedbackId]
+ * @param {() => void | Promise<void>} [options.onAfterClearAllBooks]
  */
 export function initSettings(options = {}) {
   const dialogId = options.dialogId ?? "settings-dialog";
@@ -146,8 +147,16 @@ export function initSettings(options = {}) {
   }
   activateSettingsTab("llm");
 
-  function setFeedback(text) {
-    if (feedback) feedback.textContent = text;
+  /**
+   * @param {string} text
+   * @param {"neutral" | "ok" | "error"} [kind]
+   */
+  function setFeedback(text, kind = "neutral") {
+    if (!feedback) return;
+    feedback.textContent = text;
+    feedback.classList.remove("settings-feedback--ok", "settings-feedback--error");
+    if (kind === "ok") feedback.classList.add("settings-feedback--ok");
+    if (kind === "error") feedback.classList.add("settings-feedback--error");
   }
 
   async function loadAndShow() {
@@ -206,15 +215,45 @@ export function initSettings(options = {}) {
     });
   }
 
+  const clearAllBtn = document.getElementById("settings-clear-all");
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", async () => {
+      const ok = window.confirm(
+        "Delete all books and conversations? This cannot be undone.",
+      );
+      if (!ok) return;
+      setFeedback("Clearing…");
+      try {
+        await clearAllBooks();
+        setFeedback("All books and conversations cleared.", "ok");
+        if (typeof options.onAfterClearAllBooks === "function") {
+          await options.onAfterClearAllBooks();
+        }
+      } catch (e) {
+        setFeedback(e instanceof Error ? e.message : "Clear failed", "error");
+      }
+    });
+  }
+
   const testBtn = document.getElementById("settings-test-llm");
   if (testBtn) {
     testBtn.addEventListener("click", async () => {
       setFeedback("Testing LLM…");
       try {
         const res = await testLlm();
-        setFeedback(typeof res === "object" ? JSON.stringify(res) : String(res));
+        if (res && typeof res === "object" && res.status === "ok") {
+          const model = typeof res.model === "string" ? res.model : "?";
+          const mode = typeof res.mode === "string" ? res.mode : "?";
+          setFeedback(`Connected to ${model} via ${mode}`, "ok");
+        } else if (res && typeof res === "object" && res.status === "error") {
+          const detail =
+            typeof res.detail === "string" ? res.detail : JSON.stringify(res.detail ?? res);
+          setFeedback(detail, "error");
+        } else {
+          setFeedback(typeof res === "object" ? JSON.stringify(res) : String(res));
+        }
       } catch (e) {
-        setFeedback(e instanceof Error ? e.message : "Test failed");
+        setFeedback(e instanceof Error ? e.message : "Test failed", "error");
       }
     });
   }

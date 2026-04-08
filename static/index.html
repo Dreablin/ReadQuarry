@@ -91,9 +91,8 @@
 
       <section
         id="view-search"
-        class="panel panel--search"
+        class="panel panel--search view--hidden"
         aria-labelledby="search-heading"
-        hidden
       >
         <h2 id="search-heading" class="panel__title">Search in book</h2>
         <form id="search-form" class="search-form" action="#" method="get">
@@ -112,9 +111,8 @@
 
       <section
         id="view-logs"
-        class="panel panel--logs"
+        class="panel panel--logs view--hidden"
         aria-labelledby="logs-heading"
-        hidden
       >
         <h2 id="logs-heading" class="panel__title">Logs</h2>
         <pre id="log-viewer-output" class="log-viewer-output" aria-live="polite"></pre>
@@ -145,6 +143,13 @@
           <option value="fixed-size">Fixed size</option>
           <option value="chapter-aware-recursive">Chapter-aware (recursive)</option>
         </select>
+        <p
+          id="upload-feedback"
+          class="upload-feedback"
+          role="alert"
+          aria-live="polite"
+          hidden
+        ></p>
         <div id="upload-progress" class="upload-progress" aria-hidden="true">
           <div class="upload-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         </div>
@@ -271,6 +276,14 @@
           </div>
         </div>
         <p id="settings-feedback" class="settings-feedback" role="status" aria-live="polite"></p>
+        <div class="settings-danger-zone">
+          <p class="settings-danger-zone__text">
+            Delete all uploaded books, chat history, and search indexes. This cannot be undone.
+          </p>
+          <button type="button" id="settings-clear-all" class="btn-danger">
+            Clear all data
+          </button>
+        </div>
         <div class="dialog__actions">
           <button type="button" id="settings-close">Close</button>
           <button type="button" id="settings-reset">Reset defaults</button>

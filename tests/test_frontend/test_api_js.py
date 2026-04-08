@@ -31,6 +31,12 @@ def test_api_js_books_endpoints(api_js: str) -> None:
     assert "chunks" in api_js
 
 
+def test_api_js_clear_all_books(api_js: str) -> None:
+    """B16: DELETE /api/books clears all books."""
+    assert "clearAllBooks" in api_js
+    assert "DELETE" in api_js
+
+
 def test_api_js_search_endpoints(api_js: str) -> None:
     assert "/api/search/semantic" in api_js
     assert "/api/search/exact" in api_js
@@ -59,6 +65,7 @@ def test_api_js_exports_named_functions(api_js: str) -> None:
         "listBooks",
         "getBook",
         "deleteBook",
+        "clearAllBooks",
         "getBookChunks",
         "searchSemantic",
         "searchExact",

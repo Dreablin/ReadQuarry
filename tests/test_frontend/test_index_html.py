@@ -1,5 +1,6 @@
 """Structural checks for the ReadQuarry HTML shell (static/index.html)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -60,6 +61,18 @@ def test_index_html_logs_view_panel(index_html: str) -> None:
     assert "log-viewer-output" in index_html
 
 
+def test_index_html_main_views_use_view_hidden_not_broken_hidden_attr(index_html: str) -> None:
+    """B17: Search/Logs panels use .view--hidden (not HTML hidden) so CSS display:flex cannot override."""
+    assert 'class="panel panel--search view--hidden"' in index_html
+    assert 'class="panel panel--logs view--hidden"' in index_html
+    for vid in ("view-search", "view-logs"):
+        m = re.search(rf"<section[\s\S]*?id=\"{vid}\"[\s\S]*?>", index_html)
+        assert m is not None, vid
+        tag_open = m.group(0)
+        assert "view--hidden" in tag_open
+        assert "hidden" not in tag_open.replace("view--hidden", "")
+
+
 def test_index_html_split_panels(index_html: str) -> None:
     assert "chat-panel" in index_html
     assert "references-panel" in index_html
@@ -87,11 +100,23 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-progress" in index_html
 
 
+def test_index_html_upload_feedback_for_errors(index_html: str) -> None:
+    """B13: inline upload error area inside the dialog (not only status bar)."""
+    assert 'id="upload-feedback"' in index_html
+    assert "upload-feedback" in index_html
+
+
 def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-dialog" in index_html
     assert "settings-form" in index_html
     assert "settings-feedback" in index_html
     assert "settings-llm_mode" in index_html
+
+
+def test_index_html_settings_clear_all_data_button(index_html: str) -> None:
+    """B16: Settings includes a destructive clear-all control."""
+    assert 'id="settings-clear-all"' in index_html
+    assert "btn-danger" in index_html
 
 
 def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
