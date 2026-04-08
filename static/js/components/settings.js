@@ -146,8 +146,16 @@ export function initSettings(options = {}) {
   }
   activateSettingsTab("llm");
 
-  function setFeedback(text) {
-    if (feedback) feedback.textContent = text;
+  /**
+   * @param {string} text
+   * @param {"neutral" | "ok" | "error"} [kind]
+   */
+  function setFeedback(text, kind = "neutral") {
+    if (!feedback) return;
+    feedback.textContent = text;
+    feedback.classList.remove("settings-feedback--ok", "settings-feedback--error");
+    if (kind === "ok") feedback.classList.add("settings-feedback--ok");
+    if (kind === "error") feedback.classList.add("settings-feedback--error");
   }
 
   async function loadAndShow() {
@@ -212,9 +220,19 @@ export function initSettings(options = {}) {
       setFeedback("Testing LLM…");
       try {
         const res = await testLlm();
-        setFeedback(typeof res === "object" ? JSON.stringify(res) : String(res));
+        if (res && typeof res === "object" && res.status === "ok") {
+          const model = typeof res.model === "string" ? res.model : "?";
+          const mode = typeof res.mode === "string" ? res.mode : "?";
+          setFeedback(`Connected to ${model} via ${mode}`, "ok");
+        } else if (res && typeof res === "object" && res.status === "error") {
+          const detail =
+            typeof res.detail === "string" ? res.detail : JSON.stringify(res.detail ?? res);
+          setFeedback(detail, "error");
+        } else {
+          setFeedback(typeof res === "object" ? JSON.stringify(res) : String(res));
+        }
       } catch (e) {
-        setFeedback(e instanceof Error ? e.message : "Test failed");
+        setFeedback(e instanceof Error ? e.message : "Test failed", "error");
       }
     });
   }

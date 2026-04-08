@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 7 — Bug Fixes (Round 2)
-**Next Task**: B14
-**Last Completed**: B13
-**Total Progress**: 14 / 17 tasks
+**Next Task**: B15
+**Last Completed**: B14
+**Total Progress**: 15 / 17 tasks
 
 ---
 
@@ -34,7 +34,7 @@
 
 - [x] **B17**: Fix navigation tabs — CSS `display: flex` on `.panel--logs`/`.panel--search` overrides HTML `hidden` attribute, making Logs always visible — see BUGS.md B17
 - [x] **B13**: Duplicate book upload fails silently — add backend logging and show error inside upload dialog — see BUGS.md B13
-- [ ] **B14**: "Test LLM" button is a stub — wire to real LLMClient connectivity check — see BUGS.md B14
+- [x] **B14**: "Test LLM" button is a stub — wire to real LLMClient connectivity check — see BUGS.md B14
 - [ ] **B15**: Settings dialog action buttons unreadable — add themed CSS for `.dialog__actions button` — see BUGS.md B15
 - [ ] **B16**: Add "Clear All Data" button to delete all books and reset databases — see BUGS.md B16
 
@@ -58,6 +58,7 @@
 | 2026-04-07 | B12 | Document finite `max_iterations` in `prompt.md` + `.cursor/rules/ralph-loop.mdc`; regression test `test_prompt_documents_ralph_loop_finite_max_iterations_safety` | BUGS.md B12: avoid unlimited loop when completion promise does not stop the scheduler |
 | 2026-04-07 | B17 | `.view--hidden { display: none !important }`; `setView` uses `classList.toggle` on chat/refs/search/logs; HTML uses `view--hidden` on `#view-search`/`#view-logs` (no boolean `hidden`) | BUGS.md B17 approach (a): author `display:flex` overrides `[hidden]` |
 | 2026-04-07 | B13 | `logger.warning` on duplicate hash before 409; `#upload-feedback` + `.upload-feedback--error` in dialog; `book-upload.js` shows `error.message` in-dialog; still calls `onError` for status bar | BUGS.md B13 |
+| 2026-04-07 | B14 | `POST /test-llm` uses `LLMClient(..., timeout=10)` + minimal `chat_completion`; HTTP 200 + `{status, detail?}`; cloud empty `api_key` short-circuit; `settings.js` + `.settings-feedback--ok/--error` | BUGS.md B14; mock `LLMClient` in API tests via `settings_module` |
 
 ---
 

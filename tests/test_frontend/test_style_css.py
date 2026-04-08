@@ -67,6 +67,12 @@ def test_style_css_settings_tab_panels(style_css: str) -> None:
     assert "settings-tabs" in style_css
 
 
+def test_style_css_settings_feedback_ok_error(style_css: str) -> None:
+    """B14: Test LLM feedback colors."""
+    assert ".settings-feedback--ok" in style_css
+    assert ".settings-feedback--error" in style_css
+
+
 def test_style_css_settings_cloud_warning(style_css: str) -> None:
     """B08: Cloud API key notice uses distinct warning styling."""
     assert "settings-warning" in style_css

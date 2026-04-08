@@ -674,6 +674,15 @@ dialog.dialog--settings {
   color: var(--color-text-muted);
 }
 
+/* B14: Test LLM success / failure */
+.settings-feedback--ok {
+  color: #34d399;
+}
+
+.settings-feedback--error {
+  color: #f87171;
+}
+
 .upload-dropzone {
   padding: var(--space-xl);
   border: 2px dashed var(--color-border);

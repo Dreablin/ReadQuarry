@@ -11,22 +11,26 @@ logger = logging.getLogger(__name__)
 class LLMClient:
     """Unified chat completion client for Ollama (OpenAI-compatible) and cloud APIs."""
 
-    def __init__(self, settings: dict[str, Any]) -> None:
+    def __init__(self, settings: dict[str, Any], *, timeout: float | None = None) -> None:
         """Build an OpenAI SDK client from app settings.
 
         Args:
             settings: Dict with ``llm_mode`` (``ollama`` | ``cloud``), URLs, keys, and model ids.
+            timeout: Optional HTTP timeout in seconds (e.g. for connectivity tests).
         """
         self._settings = settings
         mode = settings.get("llm_mode", "ollama")
+        client_kwargs: dict[str, Any] = {}
+        if timeout is not None:
+            client_kwargs["timeout"] = timeout
         if mode == "ollama":
             base = str(settings.get("ollama_base_url", "http://localhost:11434")).rstrip("/")
-            self._client = OpenAI(base_url=f"{base}/v1", api_key="ollama")
+            self._client = OpenAI(base_url=f"{base}/v1", api_key="ollama", **client_kwargs)
             self._default_model = settings.get("ollama_model_id", "llama3.2")
         else:
             api_key = settings.get("api_key") or ""
             base_url = settings.get("api_base_url") or None
-            kwargs: dict[str, Any] = {"api_key": api_key}
+            kwargs: dict[str, Any] = {"api_key": api_key, **client_kwargs}
             if base_url:
                 kwargs["base_url"] = str(base_url).rstrip("/")
             self._client = OpenAI(**kwargs)

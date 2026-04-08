@@ -86,10 +86,55 @@ def test_settings_api_reset_restores_defaults() -> None:
     assert defaults["llm_mode"] in {"ollama", "cloud"}
 
 
-def test_settings_api_test_llm_endpoint() -> None:
+def test_settings_api_test_llm_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """POST /test-llm returns 200 with status ok or error (never relies on real network)."""
+
+    class _Ok:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def chat_completion(self, *a: object, **k: object) -> None:
+            return None
+
+    monkeypatch.setattr(settings_module, "LLMClient", _Ok)
+    client.post("/api/settings/reset")
     response = client.post("/api/settings/test-llm")
     assert response.status_code == 200
-    assert response.json()["status"] in {"ok", "error"}
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["mode"] == "ollama"
+    assert "model" in data
+
+
+def test_settings_test_llm_returns_error_when_chat_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B14: failed connectivity returns HTTP 200 with status error and detail (for frontend JSON)."""
+
+    class _Fail:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def chat_completion(self, *a: object, **k: object) -> None:
+            raise RuntimeError("connection refused (test)")
+
+    monkeypatch.setattr(settings_module, "LLMClient", _Fail)
+    client.post("/api/settings/reset")
+    response = client.post("/api/settings/test-llm")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "connection refused" in data["detail"]
+
+
+def test_settings_test_llm_cloud_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B14: cloud mode without api_key cannot run a test."""
+    client.post("/api/settings/reset")
+    monkeypatch.setitem(settings_module._SETTINGS, "llm_mode", "cloud")
+    monkeypatch.setitem(settings_module._SETTINGS, "api_key", "")
+    response = client.post("/api/settings/test-llm")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "api_key" in data["detail"].lower()
 
 
 def test_settings_api_rejects_invalid_llm_mode() -> None:

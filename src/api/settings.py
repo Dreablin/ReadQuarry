@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from config import settings as app_config
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL
+from src.core.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -128,5 +129,24 @@ def reset_settings() -> dict:
 
 @router.post("/test-llm")
 def test_llm() -> dict:
-    # Placeholder: real connectivity test comes with LLM client integration.
-    return {"status": "ok"}
+    """Ping the configured LLM with a minimal completion (HTTP 200 + JSON for UI)."""
+    mode = str(_SETTINGS.get("llm_mode", "ollama"))
+    if mode == "cloud":
+        api_key = str(_SETTINGS.get("api_key") or "").strip()
+        if not api_key:
+            detail = "api_key is required for cloud LLM test"
+            logger.warning("LLM test failed: %s", detail)
+            return {"status": "error", "detail": detail}
+    try:
+        llm = LLMClient(dict(_SETTINGS), timeout=10.0)
+        llm.chat_completion([{"role": "user", "content": "ping"}], max_tokens=1)
+    except Exception as exc:
+        msg = str(exc)
+        logger.warning("LLM connectivity test failed: %s", msg)
+        return {"status": "error", "detail": msg}
+    if mode == "ollama":
+        model = str(_SETTINGS.get("ollama_model_id", "llama3.2"))
+    else:
+        model = str(_SETTINGS.get("model_id", "gpt-4o"))
+    logger.info("LLM connectivity test succeeded mode=%s model=%s", mode, model)
+    return {"status": "ok", "model": model, "mode": mode}
