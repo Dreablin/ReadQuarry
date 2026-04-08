@@ -45,6 +45,17 @@ def test_chat_js_sse_streaming(chat_js: str) -> None:
     assert "data:" in chat_js or '"delta"' in chat_js
 
 
+def test_chat_js_sse_logs_malformed_json(chat_js: str) -> None:
+    """B04: malformed SSE lines must not fail silently."""
+    assert "console.warn" in chat_js
+    assert "failed to parse" in chat_js.lower()
+
+
+def test_chat_js_delta_accepts_string_content_including_empty(chat_js: str) -> None:
+    """B04: use typeof ev.content === ''string'' so empty deltas and placeholders render."""
+    assert 'typeof ev.content === "string"' in chat_js
+
+
 def test_chat_js_message_roles(chat_js: str) -> None:
     lower = chat_js.lower()
     assert "user" in lower and ("assistant" in lower or "role" in lower)

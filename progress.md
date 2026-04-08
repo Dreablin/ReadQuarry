@@ -8,9 +8,9 @@
 ## Current Status
 
 **Phase**: Bugfixes
-**Next Task**: B04
-**Last Completed**: B03
-**Total Progress**: 3 / 8 tasks
+**Next Task**: B05
+**Last Completed**: B04
+**Total Progress**: 4 / 8 tasks
 
 ---
 
@@ -21,7 +21,7 @@
 - [x] **B01**: SearchEngine exact result scoring bug — Modify `SearchEngine.search()` in `src/core/search_engine.py` to include `"score"` inside each document so `HybridSearch` ranks exact hits properly.
 - [x] **B02**: EmbeddingService random vectors bug — In `src/core/embeddings.py`, remove silent `_fallback_embed` random noise fallback in production to ensure proper ImportError when models are missing.
 - [x] **B03**: Missing Chunk rows in SQLite breaking RAG context — In `BookProcessor.process_book`, bulk insert SQLAlchemy `Chunk` models into the database so they can be joined and checked during chat completion.
-- [ ] **B04**: Empty SSE LLM streams — Add detailed debugging in `chat.py` and ensure the frontend renders empty streams with an explicit "[Empty]" log to trace Ollama empty response bugs.
+- [x] **B04**: Empty SSE LLM streams — Add detailed debugging in `chat.py` and ensure the frontend renders empty streams with an explicit "[Empty]" log to trace Ollama empty response bugs.
 - [ ] **B06**: EpubParser destroying paragraph chunking — Update `src/parsers/epub_parser.py`'s `clean_html` to use `separator="\n\n"` instead of `" "`, preserving line breaks so `ParagraphChunking` can find paragraphs.
 
 ### Phase 7: UI & Path Fixes
@@ -39,6 +39,7 @@
 | 2026-04-08 | B01 | Word and phrase `search()` return `{**doc, "score": float(...)}`; phrase uses occurrence count (min 1) | BUGS.md B01 — HybridSearch no longer sees 0.0 for exact hits |
 | 2026-04-08 | B02 | Default path loads `SentenceTransformer` without swallowing errors; `allow_fallback=True` enables old deterministic stub for tests only | BUGS.md B02 |
 | 2026-04-08 | B03 | `process_book(..., db=)` inserts `Chunk` rows + flush; Chroma/SearchEngine ids = `str(chunk.id)` for `chat.py` lookup | BUGS.md B03 |
+| 2026-04-08 | B04 | `logger.debug` per chunk/delta; empty/whitespace-only stream → placeholder delta + `warning`; `chat.js` `console.warn` on bad SSE JSON; `typeof ev.content === "string"` | BUGS.md B04 |
 
 ---
 

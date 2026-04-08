@@ -188,6 +188,32 @@ def test_chat_messages_history_order_after_two_turns(client_with_db: TestClient,
     assert contents == ["one", "A", "two", "B"]
 
 
+def test_chat_sse_stream_empty_llm_yields_placeholder_delta(client_with_db: TestClient, memory_db: Session) -> None:
+    """B04: empty delta stream must still emit a visible placeholder for the UI."""
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+
+    def _only_empty_deltas() -> object:
+        for _ in range(3):
+            chunk = MagicMock()
+            chunk.choices = [MagicMock(delta=MagicMock(content=""))]
+            yield chunk
+
+    with patch("src.api.chat.LLMClient") as mock_llm_cls:
+        mock_llm_cls.return_value.chat_completion.return_value = _only_empty_deltas()
+        r = client_with_db.post(
+            f"/api/chat/sessions/{sid}/message",
+            json={"content": "Hi"},
+        )
+
+    assert r.status_code == 200
+    assert "[Empty block returned from LLM]" in r.text
+    hist = client_with_db.get(f"/api/chat/sessions/{sid}/messages").json()
+    assert len(hist) == 2
+    assert hist[1]["role"] == "assistant"
+    assert "[Empty block returned from LLM]" in hist[1]["content"]
+
+
 def test_chat_sse_stream_includes_error_when_llm_raises(client_with_db: TestClient, memory_db: Session) -> None:
     bid = _insert_book(memory_db)
     sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
