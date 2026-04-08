@@ -710,6 +710,21 @@ dialog.dialog--settings {
   margin-top: var(--space-md);
 }
 
+.dialog--settings .settings-models-cache__hint {
+  margin: var(--space-md) 0 var(--space-sm);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.dialog--settings .settings-models-cache__hint code {
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+}
+
 .dialog--settings .settings-warning {
   margin: 0 0 var(--space-sm);
   padding: var(--space-sm) var(--space-md);

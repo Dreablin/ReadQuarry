@@ -79,6 +79,11 @@ def test_style_css_settings_clear_all_danger_zone(style_css: str) -> None:
     assert ".btn-danger" in style_css
 
 
+def test_style_css_settings_models_cache_hint(style_css: str) -> None:
+    """B08: Embeddings tab hint for models cache location and clear button."""
+    assert ".settings-models-cache__hint" in style_css
+
+
 def test_style_css_dialog_action_buttons_themed(style_css: str) -> None:
     """B15: dialog action buttons must be explicitly themed for dark UI contrast."""
     assert ".dialog__actions button" in style_css

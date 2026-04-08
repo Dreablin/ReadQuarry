@@ -119,6 +119,13 @@ def test_index_html_settings_clear_all_data_button(index_html: str) -> None:
     assert "btn-danger" in index_html
 
 
+def test_index_html_settings_clear_models_cache_button(index_html: str) -> None:
+    """B08: Embeddings tab exposes clear-models-cache control."""
+    assert 'id="settings-clear-models-cache"' in index_html
+    assert "Clear Models Cache (Downloads)" in index_html
+    assert "data/models" in index_html
+
+
 def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     """B07: Settings dialog uses LLM vs Embeddings & Search tab panels."""
     assert "settings-tab-llm" in index_html

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -125,6 +126,18 @@ def reset_settings() -> dict:
     _SETTINGS.update(DEFAULTS)
     _save_to_disk()
     return dict(_SETTINGS)
+
+
+@router.delete("/models_cache")
+def delete_models_cache() -> dict[str, str]:
+    """Remove downloaded sentence-transformers / Hugging Face files under ``data_dir/models``."""
+    models_dir = Path(app_config.data_dir) / "models"
+    if models_dir.is_dir():
+        shutil.rmtree(models_dir)
+        logger.info("Removed embedding models cache: %s", models_dir)
+    else:
+        logger.debug("Models cache directory not found (nothing to delete): %s", models_dir)
+    return {"status": "cleared", "path": str(models_dir)}
 
 
 @router.post("/test-llm")
