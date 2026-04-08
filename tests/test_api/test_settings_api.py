@@ -1,9 +1,44 @@
+from __future__ import annotations
+
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 from fastapi.testclient import TestClient
 
 from main import app
+from src.api import settings as settings_module
 
 
 client = TestClient(app)
+
+
+def test_settings_persist_to_disk_and_reload_simulates_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B03: values saved via API must be loadable from settings.json after a simulated process restart."""
+    monkeypatch.setattr(
+        settings_module,
+        "app_config",
+        SimpleNamespace(data_dir=tmp_path),
+    )
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+
+    c = TestClient(app)
+    custom_url = "http://127.0.0.1:19999"
+    r = c.put("/api/settings", json={"ollama_base_url": custom_url})
+    assert r.status_code == 200
+
+    path = tmp_path / "settings.json"
+    assert path.is_file(), "settings should be written to data_dir/settings.json"
+
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+    settings_module._merge_file_into_settings()
+
+    after = c.get("/api/settings").json()
+    assert after["ollama_base_url"] == custom_url
 
 
 def test_settings_api_get_returns_defaults() -> None:
