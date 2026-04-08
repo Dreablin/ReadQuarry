@@ -1,13 +1,64 @@
+import builtins
+
+import pytest
+
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
+
+
+def test_embedding_service_raises_import_error_without_sentence_transformers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B02: do not silently use random vectors when the ML stack is missing."""
+
+    real_import = builtins.__import__
+
+    def guarded_import(
+        name: str,
+        globals: dict | None = None,
+        locals: dict | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ):
+        if name == "sentence_transformers" or name.startswith("sentence_transformers."):
+            raise ImportError("No module named 'sentence_transformers'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    with pytest.raises(ImportError):
+        EmbeddingService()
+
+
+def test_embedding_service_allow_fallback_uses_deterministic_vectors_when_model_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Optional test path: explicit flag keeps deterministic stub vectors."""
+    real_import = builtins.__import__
+
+    def guarded_import(
+        name: str,
+        globals: dict | None = None,
+        locals: dict | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ):
+        if name == "sentence_transformers" or name.startswith("sentence_transformers."):
+            raise ImportError("No module named 'sentence_transformers'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    svc = EmbeddingService(allow_fallback=True)
+    v = svc.embed_text("hello")
+    assert len(v) == 384
+    assert v == svc.embed_text("hello")
 
 
 def test_default_embedding_model_is_multilingual() -> None:
     """B05: default model must support Russian and English (not English-only MiniLM)."""
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     assert DEFAULT_EMBEDDING_MODEL == "paraphrase-multilingual-MiniLM-L12-v2"
     assert EmbeddingService().model_name == DEFAULT_EMBEDDING_MODEL
 
 
 def test_embedding_service_single_text_shape() -> None:
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     service = EmbeddingService()
     vector = service.embed_text("hello world")
     assert isinstance(vector, list)
@@ -15,6 +66,7 @@ def test_embedding_service_single_text_shape() -> None:
 
 
 def test_embedding_service_batch_shape() -> None:
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     service = EmbeddingService()
     vectors = service.embed_texts(["alpha", "beta", "gamma"])
     assert len(vectors) == 3
@@ -22,6 +74,7 @@ def test_embedding_service_batch_shape() -> None:
 
 
 def test_embedding_service_is_deterministic_for_same_text() -> None:
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     service = EmbeddingService()
     v1 = service.embed_text("same input")
     v2 = service.embed_text("same input")
@@ -29,6 +82,7 @@ def test_embedding_service_is_deterministic_for_same_text() -> None:
 
 
 def test_embedding_service_rejects_non_string_input() -> None:
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     service = EmbeddingService()
     try:
         service.embed_text(123)  # type: ignore[arg-type]
@@ -39,6 +93,7 @@ def test_embedding_service_rejects_non_string_input() -> None:
 
 
 def test_embedding_service_handles_empty_batch() -> None:
+    pytest.importorskip("sentence_transformers", reason="embedding model integration")
     service = EmbeddingService()
     vectors = service.embed_texts([])
     assert vectors == []
