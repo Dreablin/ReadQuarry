@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 6 — Bug Fixes
-**Next Task**: B02
-**Last Completed**: B01
-**Total Progress**: 1 / 12 tasks
+**Next Task**: B03
+**Last Completed**: B02
+**Total Progress**: 2 / 12 tasks
 
 ---
 
@@ -18,7 +18,7 @@
 ### Phase 6: Bug Fixes
 
 - [x] **B01**: Unify book storage — move from in-memory dict to SQLAlchemy DB so chat sessions can find uploaded books — see BUGS.md B01
-- [ ] **B02**: Wire semantic search to real EmbeddingService + VectorStore instead of placeholder — see BUGS.md B02
+- [x] **B02**: Wire semantic search to real EmbeddingService + VectorStore instead of placeholder — see BUGS.md B02
 - [ ] **B03**: Persist settings to JSON file on disk so they survive restarts — see BUGS.md B03
 - [ ] **B04**: Fix GPU idle load caused by infinite CSS header-shimmer animation — see BUGS.md B04
 - [ ] **B05**: Add multi-language support (Russian + English) for embeddings, search, and chunking — see BUGS.md B05
@@ -37,6 +37,7 @@
 | Date | Task | Decision | Rationale |
 |------|------|----------|-----------|
 | 2026-04-07 | B01 | Persist `SearchEngine` docs to `documents.json` under per-book index dir; align search API with `settings.data_dir` | Exact search must see chunks after upload when a new `SearchEngine` instance is constructed per request |
+| 2026-04-07 | B02 | Map Chroma distances to `score = 1/(1+dist)` for hybrid merge (higher is better) | Aligns with `HybridSearch.merge_results` summing scores |
 
 ---
 
