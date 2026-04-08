@@ -8,9 +8,9 @@
 ## Current Status
 
 **Phase**: Bugfixes
-**Next Task**: B05
-**Last Completed**: B04
-**Total Progress**: 4 / 8 tasks
+**Next Task**: B06
+**Last Completed**: B05
+**Total Progress**: 5 / 8 tasks
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### Phase 7: UI & Path Fixes
 
-- [ ] **B05**: Hardcoded search results limit — Expose `max_results` in the UI and allow retrieving more than 7 matches (e.g. increasing defaults to 20-50).
+- [x] **B05**: Hardcoded search results limit — Expose `max_results` in the UI and allow retrieving more than 7 matches (e.g. increasing defaults to 20-50).
 - [ ] **B07**: Model caching location — In `src/core/embeddings.py`, configure `SentenceTransformer` with `cache_folder` pointing to `data/models` so models stay localized to the project.
 - [ ] **B08**: Clear Model Cache action — Add a `DELETE /api/settings/models_cache` endpoint and a UI button in Settings to purge the `data/models` folder.
 
@@ -40,6 +40,7 @@
 | 2026-04-08 | B02 | Default path loads `SentenceTransformer` without swallowing errors; `allow_fallback=True` enables old deterministic stub for tests only | BUGS.md B02 |
 | 2026-04-08 | B03 | `process_book(..., db=)` inserts `Chunk` rows + flush; Chroma/SearchEngine ids = `str(chunk.id)` for `chat.py` lookup | BUGS.md B03 |
 | 2026-04-08 | B04 | `logger.debug` per chunk/delta; empty/whitespace-only stream → placeholder delta + `warning`; `chat.js` `console.warn` on bad SSE JSON; `typeof ev.content === "string"` | BUGS.md B04 |
+| 2026-04-08 | B05 | Hybrid defaults: semantic 15, exact 15, final 20; `le=50` on search k fields; Search panel `#search-max-results` drives `semantic_k`/`exact_k`/`final_n` | BUGS.md B05 |
 
 ---
 

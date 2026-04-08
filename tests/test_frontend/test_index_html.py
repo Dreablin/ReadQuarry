@@ -154,5 +154,12 @@ def test_index_html_search_view_and_app_module(index_html: str) -> None:
     assert "view-search" in index_html
     assert "search-query" in index_html
     assert "search-results" in index_html
+
+
+def test_index_html_search_max_results_control(index_html: str) -> None:
+    """B05: hybrid search exposes max results (1–50) in the search panel."""
+    assert 'id="search-max-results"' in index_html
+    assert 'max="50"' in index_html
+    assert 'value="20"' in index_html
     assert 'src="js/app.js"' in index_html
     assert 'type="module"' in index_html

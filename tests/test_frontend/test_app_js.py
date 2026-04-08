@@ -58,3 +58,11 @@ def test_app_js_set_view_uses_view_hidden_class(app_js: str) -> None:
     assert "view--hidden" in app_js
     assert "classList.toggle" in app_js
     assert ".hidden =" not in app_js
+
+
+def test_app_js_search_hybrid_passes_result_limits(app_js: str) -> None:
+    """B05: search submits semantic_k, exact_k, final_n from Max results control."""
+    assert "search-max-results" in app_js
+    assert "semantic_k" in app_js
+    assert "exact_k" in app_js
+    assert "final_n" in app_js

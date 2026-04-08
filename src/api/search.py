@@ -19,21 +19,21 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 class SemanticSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    top_k: int = Field(default=5, gt=0)
+    top_k: int = Field(default=15, gt=0, le=50)
 
 
 class ExactSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    max_results: int = Field(default=5, gt=0)
+    max_results: int = Field(default=15, gt=0, le=50)
 
 
 class HybridSearchRequest(BaseModel):
     book_id: int
     query: str = Field(min_length=1)
-    semantic_k: int = Field(default=5, gt=0)
-    exact_k: int = Field(default=5, gt=0)
-    final_n: int = Field(default=7, gt=0)
+    semantic_k: int = Field(default=15, gt=0, le=50)
+    exact_k: int = Field(default=15, gt=0, le=50)
+    final_n: int = Field(default=20, gt=0, le=50)
 
 
 def _chroma_query_to_results(raw: dict[str, Any], top_k: int) -> list[dict[str, Any]]:

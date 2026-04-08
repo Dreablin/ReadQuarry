@@ -104,6 +104,18 @@
             placeholder="Search text or &quot;phrase&quot;…"
             autocomplete="off"
           />
+          <label class="search-form__label" for="search-max-results">Max results</label>
+          <input
+            type="number"
+            id="search-max-results"
+            name="max_results"
+            class="search-form__max-results"
+            min="1"
+            max="50"
+            value="20"
+            step="1"
+            aria-label="Maximum number of hybrid search results"
+          />
           <button type="submit" id="search-submit" class="btn-send">Search</button>
         </form>
         <div id="search-results" class="search-results" role="region" aria-live="polite"></div>

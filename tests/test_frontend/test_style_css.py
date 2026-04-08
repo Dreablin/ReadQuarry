@@ -148,3 +148,9 @@ def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
 def test_style_css_button_and_panel_hover_or_transitions(style_css: str) -> None:
     lower = style_css.lower()
     assert "transition" in lower or "animation" in lower
+
+
+def test_style_css_search_form_max_results(style_css: str) -> None:
+    """B05: search panel max-results control is styled."""
+    assert ".search-form__max-results" in style_css
+    assert ".search-form__label" in style_css

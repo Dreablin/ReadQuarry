@@ -258,6 +258,21 @@ body {
   color: var(--color-text);
 }
 
+.search-form__label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.search-form__max-results {
+  width: 4.5rem;
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(8, 10, 18, 0.45);
+  color: var(--color-text);
+}
+
 .search-results {
   flex: 1;
   min-height: 200px;
