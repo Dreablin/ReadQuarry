@@ -89,6 +89,15 @@ def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     assert "role=\"tabpanel\"" in index_html
 
 
+def test_index_html_settings_cloud_storage_warning(index_html: str) -> None:
+    """B08: Cloud LLM group includes local settings file security notice."""
+    assert "settings-cloud-security-warning" in index_html
+    assert "settings-warning" in index_html
+    assert "data/settings.json" in index_html
+    assert "All settings, including API keys" in index_html
+    assert "Keep this file secure" in index_html
+
+
 def test_index_html_settings_llm_ollama_cloud_groups(index_html: str) -> None:
     """B06: LLM fields split into Ollama vs Cloud containers toggled by mode."""
     assert "settings-llm-group-ollama" in index_html

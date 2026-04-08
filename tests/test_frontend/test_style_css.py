@@ -67,6 +67,11 @@ def test_style_css_settings_tab_panels(style_css: str) -> None:
     assert "settings-tabs" in style_css
 
 
+def test_style_css_settings_cloud_warning(style_css: str) -> None:
+    """B08: Cloud API key notice uses distinct warning styling."""
+    assert "settings-warning" in style_css
+
+
 def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
     for cls in (
         ".app-header",

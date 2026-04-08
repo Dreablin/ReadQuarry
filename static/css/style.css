@@ -567,6 +567,17 @@ dialog.dialog--settings {
   margin-top: var(--space-md);
 }
 
+.dialog--settings .settings-warning {
+  margin: 0 0 var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fbbf24;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .dialog--settings input,
 .dialog--settings select {
   width: 100%;

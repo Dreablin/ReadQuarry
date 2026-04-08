@@ -55,6 +55,10 @@ function applyLlmModeVisibility() {
   const cloudActive = modeEl.value === "cloud";
   ollama.classList.toggle("settings-llm-group--hidden", cloudActive);
   cloud.classList.toggle("settings-llm-group--hidden", !cloudActive);
+  const cloudNotice = document.getElementById("settings-cloud-security-warning");
+  if (cloudNotice instanceof HTMLElement) {
+    cloudNotice.hidden = !cloudActive;
+  }
 }
 
 /**

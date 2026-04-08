@@ -54,6 +54,11 @@ def test_settings_js_tab_panel_activation(settings_js: str) -> None:
     assert "activateSettingsTab" in settings_js
 
 
+def test_settings_js_cloud_security_warning_id(settings_js: str) -> None:
+    """B08: LLM visibility sync updates the cloud storage warning element."""
+    assert "settings-cloud-security-warning" in settings_js
+
+
 def test_settings_js_save_flow(settings_js: str) -> None:
     lower = settings_js.lower()
     assert "submit" in lower or "save" in lower
