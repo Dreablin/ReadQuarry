@@ -46,3 +46,9 @@ def test_book_upload_js_progress_bar(book_upload_js: str) -> None:
 def test_book_upload_js_dialog_and_file_input(book_upload_js: str) -> None:
     assert "upload-dialog" in book_upload_js
     assert "upload-file" in book_upload_js
+
+
+def test_book_upload_js_shows_errors_in_dialog_feedback(book_upload_js: str) -> None:
+    """B13: upload errors surface in #upload-feedback, not only via onError/status bar."""
+    assert "upload-feedback" in book_upload_js
+    assert "upload-feedback--error" in book_upload_js

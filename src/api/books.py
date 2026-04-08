@@ -58,6 +58,11 @@ async def upload_book(
 
     existing = db.scalars(select(Book).where(Book.file_hash == file_hash)).first()
     if existing is not None:
+        logger.warning(
+            "Duplicate book upload rejected: file_hash=%s filename=%r",
+            file_hash,
+            file.filename,
+        )
         raise HTTPException(status_code=409, detail="Book with this content already exists")
 
     stem = Path(file.filename).stem

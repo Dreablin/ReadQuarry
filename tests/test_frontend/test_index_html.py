@@ -100,6 +100,12 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-progress" in index_html
 
 
+def test_index_html_upload_feedback_for_errors(index_html: str) -> None:
+    """B13: inline upload error area inside the dialog (not only status bar)."""
+    assert 'id="upload-feedback"' in index_html
+    assert "upload-feedback" in index_html
+
+
 def test_index_html_settings_dialog(index_html: str) -> None:
     assert "settings-dialog" in index_html
     assert "settings-form" in index_html

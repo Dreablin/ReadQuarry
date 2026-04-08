@@ -84,6 +84,12 @@ def test_style_css_logs_view_panel(style_css: str) -> None:
     assert "log-viewer" in style_css
 
 
+def test_style_css_upload_feedback_error_visible(style_css: str) -> None:
+    """B13: upload dialog inline error styling."""
+    assert ".upload-feedback" in style_css
+    assert "upload-feedback--error" in style_css
+
+
 def test_style_css_view_hidden_beats_panel_display(style_css: str) -> None:
     """B17: Utility class hides panels even when .panel sets display:flex."""
     assert ".view--hidden" in style_css

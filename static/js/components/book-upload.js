@@ -11,6 +11,7 @@ const DEFAULT_IDS = {
   dropzone: "upload-dropzone",
   fileInput: "upload-file",
   chunkSelect: "chunking-strategy",
+  feedback: "upload-feedback",
   progress: "upload-progress",
   form: "upload-form",
   cancelButton: "upload-cancel",
@@ -64,6 +65,9 @@ export function initBookUpload(options = {}) {
   const dropzone = requireEl("dropzone", document.getElementById(ids.dropzone));
   const fileInput = /** @type {HTMLInputElement} */ (requireEl("fileInput", document.getElementById(ids.fileInput)));
   const chunkSelect = /** @type {HTMLSelectElement} */ (requireEl("chunkSelect", document.getElementById(ids.chunkSelect)));
+  const feedbackEl = /** @type {HTMLParagraphElement} */ (
+    requireEl("feedback", document.getElementById(ids.feedback))
+  );
   const progressContainer = requireEl("progress", document.getElementById(ids.progress));
   const progressBar = findProgressBar(progressContainer);
   if (!progressBar) {
@@ -100,6 +104,21 @@ export function initBookUpload(options = {}) {
     setProgress(0, progressBar, progressContainer);
   }
 
+  function clearUploadFeedback() {
+    feedbackEl.textContent = "";
+    feedbackEl.classList.remove("upload-feedback--error");
+    feedbackEl.hidden = true;
+  }
+
+  /**
+   * @param {string} message
+   */
+  function showUploadError(message) {
+    feedbackEl.textContent = message;
+    feedbackEl.classList.add("upload-feedback--error");
+    feedbackEl.hidden = false;
+  }
+
   function setBusy(busy) {
     submitButton.disabled = busy;
     cancelButton.disabled = busy;
@@ -117,6 +136,7 @@ export function initBookUpload(options = {}) {
       return;
     }
     selectedFile = file;
+    clearUploadFeedback();
     const p = dropzone.querySelector("p");
     if (p) {
       p.textContent = `Selected: ${file.name}`;
@@ -124,6 +144,7 @@ export function initBookUpload(options = {}) {
   }
 
   openButton.addEventListener("click", () => {
+    clearUploadFeedback();
     if (typeof dialog.showModal === "function") {
       dialog.showModal();
     }
@@ -132,6 +153,7 @@ export function initBookUpload(options = {}) {
   cancelButton.addEventListener("click", () => {
     dialog.close("cancel");
     resetProgress();
+    clearUploadFeedback();
     selectedFile = null;
   });
 
@@ -186,6 +208,7 @@ export function initBookUpload(options = {}) {
     }
 
     const strategy = chunkSelect.value;
+    clearUploadFeedback();
     setBusy(true);
     startProgressAnimation();
 
@@ -193,6 +216,7 @@ export function initBookUpload(options = {}) {
       const result = await uploadBook(selectedFile, strategy);
       stopProgressAnimation();
       setProgress(100, progressBar, progressContainer);
+      clearUploadFeedback();
       if (options.onSuccess) options.onSuccess(result);
       dialog.close("ok");
       selectedFile = null;
@@ -205,6 +229,7 @@ export function initBookUpload(options = {}) {
       stopProgressAnimation();
       resetProgress();
       const error = err instanceof Error ? err : new Error(String(err));
+      showUploadError(error.message);
       if (options.onError) options.onError(error);
       else console.error(error);
     } finally {

@@ -696,6 +696,19 @@ dialog.dialog--settings {
   background: rgba(107, 76, 255, 0.12);
 }
 
+/* B13: inline errors in upload dialog (visible while dialog is open) */
+.upload-feedback {
+  margin: 0 0 var(--space-sm);
+  min-height: 1.25em;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.upload-feedback--error {
+  color: #f87171;
+}
+
 .upload-progress {
   margin-top: var(--space-md);
   height: 0.5rem;

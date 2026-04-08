@@ -184,3 +184,34 @@ def test_books_api_rejects_duplicate_upload_same_bytes(tmp_path: Path) -> None:
             data={"chunking_strategy": "paragraph"},
         )
     assert second.status_code == 409
+
+
+def test_books_api_duplicate_upload_logs_warning(
+    caplog: pytest.LogCaptureFixture, tmp_path: Path
+) -> None:
+    """B13: duplicate upload path logs a warning with hash and filename for the log viewer."""
+    caplog.set_level(logging.WARNING, logger="src.api.books")
+    client = TestClient(app)
+    sample = tmp_path / "dup_warn.epub"
+    _write_minimal_epub(sample, unique_token="b13-dup-warn-token")
+    with sample.open("rb") as f:
+        assert (
+            client.post(
+                "/api/books/upload",
+                files={"file": ("dup_warn.epub", f, "application/epub+zip")},
+                data={"chunking_strategy": "paragraph"},
+            ).status_code
+            == 200
+        )
+    with sample.open("rb") as f:
+        r = client.post(
+            "/api/books/upload",
+            files={"file": ("dup_warn.epub", f, "application/epub+zip")},
+            data={"chunking_strategy": "paragraph"},
+        )
+    assert r.status_code == 409
+    warns = [rec for rec in caplog.records if rec.name == "src.api.books" and rec.levelno == logging.WARNING]
+    assert warns, "expected WARNING from books API on duplicate"
+    joined = " ".join(rec.getMessage() for rec in warns)
+    assert "Duplicate book upload rejected" in joined
+    assert "dup_warn.epub" in joined
