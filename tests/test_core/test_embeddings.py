@@ -1,8 +1,36 @@
 import builtins
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
+import src.core.embeddings as embeddings_module
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
+
+
+def test_embedding_service_passes_cache_folder_to_sentence_transformer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B07: SentenceTransformer receives cache_folder under project data directory."""
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    captured: dict[str, str | None] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["cache_folder"] = cache_folder
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = embeddings_module.EmbeddingService()
+    assert captured["cache_folder"] == str(tmp_path / "models")
 
 
 def test_embedding_service_raises_import_error_without_sentence_transformers(monkeypatch: pytest.MonkeyPatch) -> None:

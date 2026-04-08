@@ -8,9 +8,9 @@
 ## Current Status
 
 **Phase**: Bugfixes
-**Next Task**: B07
-**Last Completed**: B06
-**Total Progress**: 6 / 8 tasks
+**Next Task**: B08
+**Last Completed**: B07
+**Total Progress**: 7 / 8 tasks
 
 ---
 
@@ -27,7 +27,7 @@
 ### Phase 7: UI & Path Fixes
 
 - [x] **B05**: Hardcoded search results limit — Expose `max_results` in the UI and allow retrieving more than 7 matches (e.g. increasing defaults to 20-50).
-- [ ] **B07**: Model caching location — In `src/core/embeddings.py`, configure `SentenceTransformer` with `cache_folder` pointing to `data/models` so models stay localized to the project.
+- [x] **B07**: Model caching location — In `src/core/embeddings.py`, configure `SentenceTransformer` with `cache_folder` pointing to `data/models` so models stay localized to the project.
 - [ ] **B08**: Clear Model Cache action — Add a `DELETE /api/settings/models_cache` endpoint and a UI button in Settings to purge the `data/models` folder.
 
 ---
@@ -42,6 +42,7 @@
 | 2026-04-08 | B04 | `logger.debug` per chunk/delta; empty/whitespace-only stream → placeholder delta + `warning`; `chat.js` `console.warn` on bad SSE JSON; `typeof ev.content === "string"` | BUGS.md B04 |
 | 2026-04-08 | B05 | Hybrid defaults: semantic 15, exact 15, final 20; `le=50` on search k fields; Search panel `#search-max-results` drives `semantic_k`/`exact_k`/`final_n` | BUGS.md B05 |
 | 2026-04-08 | B06 | `clean_html`: extract `p`/headings/`li` with spaced inline text, join with `\n\n`; fallback `get_text(\n\n)` + merge | BUGS.md B06 — ParagraphChunking |
+| 2026-04-08 | B07 | `EmbeddingService(cache_folder=)` defaults to `str(settings.data_dir / "models")`; passed to `SentenceTransformer` | BUGS.md B07 |
 
 ---
 
