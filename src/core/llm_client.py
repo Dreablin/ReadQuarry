@@ -78,7 +78,7 @@ class LLMClient:
         temp = temperature if temperature is not None else self._settings.get("temperature", 0.3)
 
         if self._mode == "ollama":
-            return self._ollama_chat(messages, model=model, num_predict=mt, temperature=temp)
+            return self._ollama_chat(messages, model=model, temperature=temp)
 
         return self._client.chat.completions.create(
             model=model or self._default_model,
@@ -94,7 +94,6 @@ class LLMClient:
         messages: list[dict[str, Any]],
         *,
         model: str | None = None,
-        num_predict: int = 2048,
         temperature: float = 0.3,
     ) -> _OllamaResponse:
         """Call Ollama's native ``/api/chat`` endpoint."""
@@ -102,12 +101,14 @@ class LLMClient:
         logger.info("Ollama request model=%s", model_name)
         self._validate_ollama_model_exists(model_name)
 
+        # Omit ``num_predict`` here: some Ollama models (e.g. Qwen with thinking) return
+        # empty ``message.content`` when ``num_predict`` is set in ``options``, while the
+        # assistant text only appears under ``thinking``. Temperature still applies.
         payload: dict[str, Any] = {
             "model": model_name,
             "messages": messages,
             "stream": False,
             "options": {
-                "num_predict": num_predict,
                 "temperature": temperature,
             },
         }
