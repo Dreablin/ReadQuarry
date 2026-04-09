@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 8 — Bug Fixes (Round 3)
-**Next Task**: B08
-**Last Completed**: B07
-**Total Progress**: 6 / 9 tasks
+**Next Task**: B09
+**Last Completed**: B08
+**Total Progress**: 7 / 9 tasks
 
 ---
 
@@ -24,7 +24,7 @@
 - [x] **B05**: Include chunk relevance scores in chat SSE `done` event alongside chunk IDs — see BUGS.md B05
 - [x] **B06**: Display relevance score for each reference in the references panel UI — see BUGS.md B06 (depends on B05)
 - [x] **B07**: Write Ollama integration tests — skip if not running, detect model, verify non-empty response — see BUGS.md B07
-- [ ] **B08**: Prevent HuggingFace Hub network access when embedding model is already cached — see BUGS.md B08
+- [x] **B08**: Prevent HuggingFace Hub network access when embedding model is already cached — see BUGS.md B08
 - [ ] **B09**: Suppress BERT `position_ids` UNEXPECTED key load report from cluttering logs — see BUGS.md B09
 
 ---
@@ -39,6 +39,7 @@
 | 2026-04-09 | B05 | `_build_context_chunks` now returns `(context, ids, scores)`; SSE `done` event adds `referenced_chunk_scores` while preserving `referenced_chunk_ids` | BUGS.md B05 |
 | 2026-04-09 | B06 | `chat.js` forwards `referenced_chunk_scores` to `onDone(ids, scores)`; `app.js` passes scores to `appendReferencedChunkIds`; `references.js` shows `Score: X.XXXX` in meta (independent of threshold setting) | BUGS.md B06 |
 | 2026-04-09 | B07 | `tests/test_integration/test_ollama_integration.py` with `@pytest.mark.integration`, module skip when Ollama unreachable, model pick from `/api/ps` ∩ `/api/tags`; `pytest.ini` registers `integration` marker; Ollama `/api/chat` no longer sends `options.num_predict` (some thinking models return empty `message.content` when set) | BUGS.md B07 |
+| 2026-04-09 | B08 | `_embedding_model_files_present` checks `sentence-transformers/{model}`, `{model}`, and `models--sentence-transformers--{model}` (HF Hub layout); cache hit → `SentenceTransformer(..., local_files_only=True)` inside `_with_hf_hub_offline`; `sentence_transformers` import stays inside `_instantiate` so `allow_fallback` still catches `ImportError` | BUGS.md B08 |
 
 ---
 
