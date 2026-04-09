@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 8 — Bug Fixes (Round 3)
-**Next Task**: B05
-**Last Completed**: B04
-**Total Progress**: 3 / 9 tasks
+**Next Task**: B06
+**Last Completed**: B05
+**Total Progress**: 4 / 9 tasks
 
 ---
 
@@ -21,7 +21,7 @@
 - [x] **B02**: Fix Ollama empty responses — add raw response debug logging, fix content extraction — see BUGS.md B02
 - [x] **B03**: Add `search_score_threshold` setting to backend defaults and frontend Embeddings & Search UI — see BUGS.md B03
 - [x] **B04**: Apply `search_score_threshold` filtering in search endpoints and hybrid merge — see BUGS.md B04 (depends on B03)
-- [ ] **B05**: Include chunk relevance scores in chat SSE `done` event alongside chunk IDs — see BUGS.md B05
+- [x] **B05**: Include chunk relevance scores in chat SSE `done` event alongside chunk IDs — see BUGS.md B05
 - [ ] **B06**: Display relevance score for each reference in the references panel UI — see BUGS.md B06 (depends on B05)
 - [ ] **B07**: Write Ollama integration tests — skip if not running, detect model, verify non-empty response — see BUGS.md B07
 - [ ] **B08**: Prevent HuggingFace Hub network access when embedding model is already cached — see BUGS.md B08
@@ -36,6 +36,7 @@
 | 2026-04-09 | B02 | Kept native Ollama `/api/chat`; added `/api/tags` model validation, raw payload/status debug logging, `response` fallback extraction, and chat compatibility for iterable test streams | BUGS.md B02 and full-suite stability |
 | 2026-04-09 | B03 | `search_score_threshold` default 0.6 in `DEFAULTS` + `SettingsUpdate`; Embeddings tab field + `readForm` float parse; API tests for persist and 0–1 validation | BUGS.md B03 |
 | 2026-04-09 | B04 | `filter_rows_by_min_score` + settings threshold; semantic + hybrid API filtered; `HybridSearch.merge_results` sets combined `score` on rows; chat RAG uses same filter; exact endpoint unchanged | BUGS.md B04 |
+| 2026-04-09 | B05 | `_build_context_chunks` now returns `(context, ids, scores)`; SSE `done` event adds `referenced_chunk_scores` while preserving `referenced_chunk_ids` | BUGS.md B05 |
 
 ---
 

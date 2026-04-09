@@ -40,11 +40,13 @@ def _sse_payload(data: dict[str, Any]) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
-def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: dict[str, Any]) -> tuple[str, list[int]]:
+def _build_context_chunks(
+    db: Session, book_id: int, query: str, app_settings: dict[str, Any]
+) -> tuple[str, list[int], list[float]]:
     """Retrieve merged chunk context for RAG; skips embedding when the book has no chunks."""
     n_chunks = db.query(Chunk).filter(Chunk.book_id == book_id).count()
     if n_chunks == 0:
-        return "", []
+        return "", [], []
 
     semantic_k = int(app_settings.get("semantic_top_k", 5))
     exact_k = int(app_settings.get("exact_results", 5))
@@ -100,6 +102,7 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
         thr = 0.6
     merged = filter_rows_by_min_score(merged, thr)
     chunk_ids_ordered: list[int] = []
+    chunk_scores_ordered: list[float] = []
     lines: list[str] = []
     for i, row in enumerate(merged, start=1):
         try:
@@ -107,10 +110,11 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
         except (TypeError, ValueError):
             continue
         chunk_ids_ordered.append(cid)
+        chunk_scores_ordered.append(float(row.get("score", 0.0)))
         chunk_row = db.get(Chunk, cid)
         text = chunk_row.text if chunk_row else str(row.get("text", ""))
         lines.append(f"[{i}] (chunk {cid}) {text}")
-    return "\n\n".join(lines), chunk_ids_ordered
+    return "\n\n".join(lines), chunk_ids_ordered, chunk_scores_ordered
 
 
 def _system_prompt() -> str:
@@ -134,7 +138,7 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     db.add(user_msg)
     db.commit()
 
-    context_text, ref_chunk_ids = _build_context_chunks(db, book_id, user_text, app_settings)
+    context_text, ref_chunk_ids, ref_chunk_scores = _build_context_chunks(db, book_id, user_text, app_settings)
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": _system_prompt()},
@@ -214,7 +218,13 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     db.add(assistant_row)
     db.commit()
 
-    yield _sse_payload({"type": "done", "referenced_chunk_ids": ref_chunk_ids})
+    yield _sse_payload(
+        {
+            "type": "done",
+            "referenced_chunk_ids": ref_chunk_ids,
+            "referenced_chunk_scores": ref_chunk_scores,
+        }
+    )
 
 
 @router.post("/sessions")

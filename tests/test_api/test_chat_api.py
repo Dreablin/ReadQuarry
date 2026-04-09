@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -233,3 +234,37 @@ def test_chat_sse_stream_includes_error_when_llm_raises(client_with_db: TestClie
     hist = client_with_db.get(f"/api/chat/sessions/{sid}/messages").json()
     assert len(hist) == 1
     assert hist[0]["role"] == "user"
+
+
+def test_chat_sse_done_includes_referenced_chunk_scores(client_with_db: TestClient, memory_db: Session) -> None:
+    """B05: done event keeps ids and adds parallel referenced_chunk_scores."""
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+
+    def _stream_once() -> object:
+        chunk = MagicMock()
+        chunk.choices = [MagicMock(delta=MagicMock(content="ok"))]
+        yield chunk
+
+    with patch("src.api.chat.LLMClient") as mock_llm_cls, patch(
+        "src.api.chat._build_context_chunks",
+        return_value=("ctx", [11, 22], [0.91, 0.63]),
+    ):
+        mock_llm_cls.return_value.chat_completion.return_value = _stream_once()
+        r = client_with_db.post(
+            f"/api/chat/sessions/{sid}/message",
+            json={"content": "Hi"},
+        )
+
+    assert r.status_code == 200
+    done_payload = None
+    for line in r.text.splitlines():
+        if line.startswith("data: "):
+            payload = json.loads(line[len("data: ") :])
+            if payload.get("type") == "done":
+                done_payload = payload
+                break
+    assert done_payload is not None
+    assert done_payload["referenced_chunk_ids"] == [11, 22]
+    assert done_payload["referenced_chunk_scores"] == [0.91, 0.63]
+    assert len(done_payload["referenced_chunk_ids"]) == len(done_payload["referenced_chunk_scores"])
