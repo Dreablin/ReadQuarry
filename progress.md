@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 8 — Bug Fixes (Round 3)
-**Next Task**: B06
-**Last Completed**: B05
-**Total Progress**: 4 / 9 tasks
+**Next Task**: B07
+**Last Completed**: B06
+**Total Progress**: 5 / 9 tasks
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] **B03**: Add `search_score_threshold` setting to backend defaults and frontend Embeddings & Search UI — see BUGS.md B03
 - [x] **B04**: Apply `search_score_threshold` filtering in search endpoints and hybrid merge — see BUGS.md B04 (depends on B03)
 - [x] **B05**: Include chunk relevance scores in chat SSE `done` event alongside chunk IDs — see BUGS.md B05
-- [ ] **B06**: Display relevance score for each reference in the references panel UI — see BUGS.md B06 (depends on B05)
+- [x] **B06**: Display relevance score for each reference in the references panel UI — see BUGS.md B06 (depends on B05)
 - [ ] **B07**: Write Ollama integration tests — skip if not running, detect model, verify non-empty response — see BUGS.md B07
 - [ ] **B08**: Prevent HuggingFace Hub network access when embedding model is already cached — see BUGS.md B08
 - [ ] **B09**: Suppress BERT `position_ids` UNEXPECTED key load report from cluttering logs — see BUGS.md B09
@@ -37,6 +37,7 @@
 | 2026-04-09 | B03 | `search_score_threshold` default 0.6 in `DEFAULTS` + `SettingsUpdate`; Embeddings tab field + `readForm` float parse; API tests for persist and 0–1 validation | BUGS.md B03 |
 | 2026-04-09 | B04 | `filter_rows_by_min_score` + settings threshold; semantic + hybrid API filtered; `HybridSearch.merge_results` sets combined `score` on rows; chat RAG uses same filter; exact endpoint unchanged | BUGS.md B04 |
 | 2026-04-09 | B05 | `_build_context_chunks` now returns `(context, ids, scores)`; SSE `done` event adds `referenced_chunk_scores` while preserving `referenced_chunk_ids` | BUGS.md B05 |
+| 2026-04-09 | B06 | `chat.js` forwards `referenced_chunk_scores` to `onDone(ids, scores)`; `app.js` passes scores to `appendReferencedChunkIds`; `references.js` shows `Score: X.XXXX` in meta (independent of threshold setting) | BUGS.md B06 |
 
 ---
 

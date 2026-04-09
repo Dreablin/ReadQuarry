@@ -199,9 +199,9 @@ export async function initApp() {
   const chatApi = await initChat({
     getSessionId: () => sessionId,
     onError: setStatus,
-    onDone: (ids) => {
+    onDone: (ids, scores) => {
       const bid = bookListRef?.getSelectedBookId() ?? null;
-      if (bid != null) void refs.appendReferencedChunkIds(bid, ids);
+      if (bid != null) void refs.appendReferencedChunkIds(bid, ids, scores);
     },
   });
 

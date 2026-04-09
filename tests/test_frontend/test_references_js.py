@@ -45,3 +45,10 @@ def test_references_js_clear_behavior(references_js: str) -> None:
 def test_references_js_chunk_display(references_js: str) -> None:
     lower = references_js.lower()
     assert "chunk" in lower and ("append" in lower or "render" in lower or "reference" in lower)
+
+
+def test_references_js_append_passes_optional_scores(references_js: str) -> None:
+    """B06: chat references show relevance scores from SSE (4 decimal places)."""
+    assert "appendReferencedChunkIds" in references_js
+    assert "Score:" in references_js
+    assert "toFixed(4)" in references_js
