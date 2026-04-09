@@ -66,3 +66,10 @@ def test_app_js_search_hybrid_passes_result_limits(app_js: str) -> None:
     assert "semantic_k" in app_js
     assert "exact_k" in app_js
     assert "final_n" in app_js
+
+
+def test_app_js_chat_on_done_passes_scores_to_references(app_js: str) -> None:
+    """B06: initChat onDone passes scores into appendReferencedChunkIds."""
+    assert "appendReferencedChunkIds" in app_js
+    assert "onDone:" in app_js
+    assert "appendReferencedChunkIds(bid, ids, scores)" in app_js

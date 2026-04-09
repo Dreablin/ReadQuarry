@@ -24,3 +24,10 @@ def test_log_viewer_js_exports_init(log_viewer_js: str) -> None:
 
 def test_log_viewer_js_uses_logs_api(log_viewer_js: str) -> None:
     assert "fetchLogs" in log_viewer_js or "/api/logs" in log_viewer_js
+
+
+def test_log_viewer_tracks_last_count_and_skips_noop_updates(log_viewer_js: str) -> None:
+    """B01: avoid replacing DOM when count hasn't changed."""
+    assert "lastCount" in log_viewer_js
+    assert "data?.count" in log_viewer_js or "entries.length" in log_viewer_js
+    assert "if (count === lastCount)" in log_viewer_js

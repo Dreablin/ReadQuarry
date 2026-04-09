@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from config import settings as app_config
 from src.api.settings import get_settings
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
-from src.core.hybrid_search import HybridSearch
+from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
 from src.core.llm_client import LLMClient
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
@@ -40,11 +40,13 @@ def _sse_payload(data: dict[str, Any]) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
-def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: dict[str, Any]) -> tuple[str, list[int]]:
+def _build_context_chunks(
+    db: Session, book_id: int, query: str, app_settings: dict[str, Any]
+) -> tuple[str, list[int], list[float]]:
     """Retrieve merged chunk context for RAG; skips embedding when the book has no chunks."""
     n_chunks = db.query(Chunk).filter(Chunk.book_id == book_id).count()
     if n_chunks == 0:
-        return "", []
+        return "", [], []
 
     semantic_k = int(app_settings.get("semantic_top_k", 5))
     exact_k = int(app_settings.get("exact_results", 5))
@@ -94,7 +96,13 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
         exact_results.append({"chunk_id": str(cid), "text": row.text, "score": 1.0})
 
     merged = HybridSearch().merge_results(semantic_results, exact_results, final_n=final_n)
+    try:
+        thr = float(app_settings.get("search_score_threshold", 0.6))
+    except (TypeError, ValueError):
+        thr = 0.6
+    merged = filter_rows_by_min_score(merged, thr)
     chunk_ids_ordered: list[int] = []
+    chunk_scores_ordered: list[float] = []
     lines: list[str] = []
     for i, row in enumerate(merged, start=1):
         try:
@@ -102,10 +110,11 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
         except (TypeError, ValueError):
             continue
         chunk_ids_ordered.append(cid)
+        chunk_scores_ordered.append(float(row.get("score", 0.0)))
         chunk_row = db.get(Chunk, cid)
         text = chunk_row.text if chunk_row else str(row.get("text", ""))
         lines.append(f"[{i}] (chunk {cid}) {text}")
-    return "\n\n".join(lines), chunk_ids_ordered
+    return "\n\n".join(lines), chunk_ids_ordered, chunk_scores_ordered
 
 
 def _system_prompt() -> str:
@@ -129,7 +138,7 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     db.add(user_msg)
     db.commit()
 
-    context_text, ref_chunk_ids = _build_context_chunks(db, book_id, user_text, app_settings)
+    context_text, ref_chunk_ids, ref_chunk_scores = _build_context_chunks(db, book_id, user_text, app_settings)
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": _system_prompt()},
@@ -144,53 +153,61 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     messages.append({"role": "user", "content": user_block})
 
     llm = LLMClient(dict(app_settings))
-    assistant_parts: list[str] = []
+
+    total_ctx_len = sum(len(m.get("content", "")) for m in messages)
+    logger.info(
+        "LLM request session_id=%s messages=%d context_chars=%d",
+        session_id, len(messages), total_ctx_len,
+    )
 
     try:
-        stream = llm.chat_completion(messages, stream=True)
-        for chunk in stream:
-            if not chunk.choices:
-                logger.debug("LLM stream chunk without choices session_id=%s", session_id)
-                continue
-            delta = chunk.choices[0].delta
-            if delta is None:
-                logger.debug("LLM stream chunk missing delta session_id=%s", session_id)
-                continue
-            piece = getattr(delta, "content", None) or ""
-            logger.debug(
-                "LLM stream delta session_id=%s piece_len=%d piece_preview=%r",
-                session_id,
-                len(piece),
-                piece[:200] if isinstance(piece, str) else piece,
-            )
-            if not piece:
-                continue
-            assistant_parts.append(piece)
-            # Stream only when there is visible text so far (avoids silent all-whitespace UIs).
-            if "".join(assistant_parts).strip():
-                yield _sse_payload({"type": "delta", "content": piece})
-            else:
-                logger.debug(
-                    "LLM stream only whitespace accumulated so far session_id=%s",
-                    session_id,
-                )
+        response = llm.chat_completion(messages, stream=False)
+        content = ""
+        raw_len = 0
+        model_name = str(app_settings.get("ollama_model_id") or app_settings.get("model_id") or "")
+        if hasattr(response, "choices"):
+            if response.choices:
+                msg = response.choices[0].message
+                if msg is not None:
+                    content = msg.content or ""
+            raw_len = len(content)
+        else:
+            # Backward compatibility with stream-like iterables used in tests.
+            chunks: list[str] = []
+            for chunk in response:
+                piece = ""
+                try:
+                    if chunk.choices:
+                        delta = chunk.choices[0].delta
+                        piece = (delta.content or "") if delta is not None else ""
+                except Exception:
+                    piece = ""
+                if piece:
+                    chunks.append(piece)
+            content = "".join(chunks)
+            raw_len = len(content)
 
-        assistant_joined = "".join(assistant_parts)
-        if not assistant_joined.strip():
+        if not content.strip():
             logger.warning(
-                "LLM returned no visible text (empty or whitespace-only) session_id=%s",
+                "LLM returned empty response session_id=%s model=%s raw_len=%d",
                 session_id,
+                model_name,
+                raw_len,
             )
-            placeholder = "[Empty block returned from LLM]"
-            assistant_parts.clear()
-            assistant_parts.append(placeholder)
-            yield _sse_payload({"type": "delta", "content": placeholder})
+            content = "[Empty block returned from LLM]"
+        else:
+            logger.info(
+                "LLM response session_id=%s chars=%d",
+                session_id, len(content),
+            )
+
+        yield _sse_payload({"type": "delta", "content": content})
     except Exception as exc:
-        logger.exception("LLM streaming failed for session_id=%s", session_id)
+        logger.exception("LLM request failed for session_id=%s", session_id)
         yield _sse_payload({"type": "error", "message": str(exc)})
         return
 
-    assistant_text = "".join(assistant_parts)
+    assistant_text = content
     ref_json = json.dumps(ref_chunk_ids) if ref_chunk_ids else None
     assistant_row = ChatMessage(
         session_id=session_id,
@@ -201,7 +218,13 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     db.add(assistant_row)
     db.commit()
 
-    yield _sse_payload({"type": "done", "referenced_chunk_ids": ref_chunk_ids})
+    yield _sse_payload(
+        {
+            "type": "done",
+            "referenced_chunk_ids": ref_chunk_ids,
+            "referenced_chunk_scores": ref_chunk_scores,
+        }
+    )
 
 
 @router.post("/sessions")

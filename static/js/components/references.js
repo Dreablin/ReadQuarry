@@ -42,8 +42,9 @@ function highlightText(text, query) {
  * @param {HTMLElement} container
  * @param {number} ordinal
  * @param {object} chunk
+ * @param {number} [relevanceScore]
  */
-function renderReferenceChunk(container, ordinal, chunk) {
+function renderReferenceChunk(container, ordinal, chunk, relevanceScore) {
   const id = chunk.id != null ? chunk.id : "?";
   const chapter = chunk.chapter_title ?? chunk.chapter ?? "";
   const idx = chunk.chunk_index ?? chunk.chunkIndex;
@@ -66,6 +67,9 @@ function renderReferenceChunk(container, ordinal, chunk) {
   const metaBits = [];
   if (chapter) metaBits.push(`Chapter: ${chapter}`);
   if (idx !== undefined && idx !== null && idx !== "") metaBits.push(`Chunk index: ${idx}`);
+  if (relevanceScore !== undefined && !Number.isNaN(Number(relevanceScore))) {
+    metaBits.push(`Score: ${Number(relevanceScore).toFixed(4)}`);
+  }
   if (strategy) metaBits.push(String(strategy));
   meta.textContent = metaBits.join(" · ");
 
@@ -89,7 +93,7 @@ let _highlightQuery = "";
  * @param {object} [options]
  * @param {string} [options.listId]
  * @param {string} [options.clearButtonId]
- * @returns {{ clear: () => void, setHighlightQuery: (q: string) => void, appendReferencedChunkIds: (bookId: number|string, chunkIds: number[]) => Promise<void>, appendReferenceEntry: (entry: object) => void }}
+ * @returns {{ clear: () => void, setHighlightQuery: (q: string) => void, appendReferencedChunkIds: (bookId: number|string, chunkIds: number[], scores?: number[]) => Promise<void>, appendReferenceEntry: (entry: object) => void }}
  */
 export function initReferences(options = {}) {
   const listEl = document.getElementById(options.listId ?? "references-list");
@@ -116,8 +120,9 @@ export function initReferences(options = {}) {
   /**
    * @param {number|string} bookId
    * @param {number[]} chunkIds
+   * @param {number[]|undefined} [scores]
    */
-  async function appendReferencedChunkIds(bookId, chunkIds) {
+  async function appendReferencedChunkIds(bookId, chunkIds, scores) {
     if (bookId == null || !chunkIds?.length) return;
 
     let rows = [];
@@ -141,6 +146,7 @@ export function initReferences(options = {}) {
     chunkIds.forEach((cid, j) => {
       const row = byId.get(String(cid));
       const ordinal = existing + j + 1;
+      const score = scores != null && scores[j] !== undefined ? Number(scores[j]) : undefined;
       renderReferenceChunk(
         listEl,
         ordinal,
@@ -148,6 +154,7 @@ export function initReferences(options = {}) {
           id: cid,
           text: "(Chunk text unavailable — check API or book index.)",
         },
+        score,
       );
     });
   }

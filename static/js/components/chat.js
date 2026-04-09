@@ -42,7 +42,7 @@ async function consumeSseJson(response, onEvent) {
  * @param {object} options
  * @param {() => number | null} options.getSessionId
  * @param {(msg: string) => void} [options.onError]
- * @param {(chunkIds: number[]) => void} [options.onDone]
+ * @param {(chunkIds: number[], scores?: number[]) => void} [options.onDone]
  * @param {string} [options.messagesId]
  * @param {string} [options.formId]
  * @param {string} [options.inputId]
@@ -160,7 +160,7 @@ export async function initChat(options) {
           if (options.onError) options.onError(msg);
           body.textContent += body.textContent ? `\n[Error] ${msg}` : msg;
         } else if (ev.type === "done" && options.onDone && Array.isArray(ev.referenced_chunk_ids)) {
-          options.onDone(ev.referenced_chunk_ids);
+          options.onDone(ev.referenced_chunk_ids, ev.referenced_chunk_scores);
         }
       });
     } catch (err) {

@@ -64,3 +64,9 @@ def test_chat_js_message_roles(chat_js: str) -> None:
 def test_chat_js_render_or_append_message(chat_js: str) -> None:
     lower = chat_js.lower()
     assert "message" in lower and ("append" in lower or "render" in lower or "createelement" in lower)
+
+
+def test_chat_js_done_passes_chunk_scores_to_on_done(chat_js: str) -> None:
+    """B06: done handler forwards referenced_chunk_scores alongside ids."""
+    assert "referenced_chunk_scores" in chat_js
+    assert "onDone(" in chat_js

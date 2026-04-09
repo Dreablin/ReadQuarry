@@ -1,4 +1,6 @@
 import builtins
+import logging
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -7,6 +9,152 @@ import pytest
 
 import src.core.embeddings as embeddings_module
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
+
+
+def test_embedding_service_temporarily_suppresses_transformers_modeling_utils_logger(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B09: model load suppresses modeling_utils noise only during instantiation."""
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    target_logger = logging.getLogger("transformers.modeling_utils")
+    prev_level = logging.INFO
+    target_logger.setLevel(prev_level)
+    captured: dict[str, int] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["during_level"] = target_logger.level
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = EmbeddingService()
+    assert captured["during_level"] >= logging.ERROR
+    assert target_logger.level == prev_level
+
+
+def test_embedding_service_restores_transformers_logger_even_on_load_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B09: logger level restoration happens even if model load raises."""
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    target_logger = logging.getLogger("transformers.modeling_utils")
+    prev_level = logging.WARNING
+    target_logger.setLevel(prev_level)
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        raise RuntimeError("load failed")
+
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    with pytest.raises(RuntimeError):
+        _ = EmbeddingService()
+    assert target_logger.level == prev_level
+
+
+def test_embedding_service_uses_local_files_only_when_cache_has_model_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B08: Cached models load with local_files_only=True (no HF Hub network check)."""
+    models_root = tmp_path / "models"
+    cache_dir = models_root / "sentence-transformers" / DEFAULT_EMBEDDING_MODEL
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "config.json").write_text("{}", encoding="utf-8")
+
+    captured: dict[str, bool | str | None] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["local_files_only"] = local_files_only
+        captured["hf_hub_offline"] = os.environ.get("HF_HUB_OFFLINE")
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = embeddings_module.EmbeddingService()
+    assert captured["local_files_only"] is True
+    assert captured["hf_hub_offline"] == "1"
+
+
+def test_embedding_service_uses_local_files_only_for_hf_hub_models_layout(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B08: Hugging Face Hub cache dir models--org--name counts as cached."""
+    models_root = tmp_path / "models"
+    hub_name = f"models--sentence-transformers--{DEFAULT_EMBEDDING_MODEL}"
+    snap = models_root / hub_name / "snapshots" / "abc123"
+    snap.mkdir(parents=True)
+    (snap / "model.safetensors").write_bytes(b"x")
+
+    captured: dict[str, bool] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["local_files_only"] = local_files_only
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = embeddings_module.EmbeddingService()
+    assert captured["local_files_only"] is True
+
+
+def test_embedding_service_no_local_files_only_when_cache_missing_or_empty(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B08: First download — no local_files_only when no files under cache."""
+    models_root = tmp_path / "models"
+    empty_st = models_root / "sentence-transformers" / DEFAULT_EMBEDDING_MODEL
+    empty_st.mkdir(parents=True)
+
+    captured: dict[str, bool] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["local_files_only"] = local_files_only
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = embeddings_module.EmbeddingService()
+    assert captured["local_files_only"] is False
 
 
 def test_embedding_service_passes_cache_folder_to_sentence_transformer(

@@ -1,12 +1,75 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import os
 import random
+from collections.abc import Callable
+from pathlib import Path
+from typing import TypeVar
 
 from config import settings
 
+logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
 # Multilingual MiniLM (384-dim): Russian, English, and 50+ other languages.
 DEFAULT_EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+
+
+def _hf_hub_models_dirname(model_name: str) -> str:
+    """Directory name used by Hugging Face Hub cache for a model id."""
+    if "/" in model_name:
+        return "models--" + model_name.replace("/", "--")
+    return f"models--sentence-transformers--{model_name}"
+
+
+def _dir_contains_any_file(path: Path) -> bool:
+    """True if ``path`` is a directory that contains at least one file."""
+    if not path.is_dir():
+        return False
+    for p in path.rglob("*"):
+        if p.is_file():
+            return True
+    return False
+
+
+def _embedding_model_files_present(cache_root: Path, model_name: str) -> bool:
+    """Return True if a full model download appears present under ``cache_root``."""
+    candidates = (
+        cache_root / "sentence-transformers" / model_name,
+        cache_root / model_name,
+        cache_root / _hf_hub_models_dirname(model_name),
+    )
+    for cand in candidates:
+        if _dir_contains_any_file(cand):
+            return True
+    return False
+
+
+def _with_hf_hub_offline(fn: Callable[[], _T]) -> _T:
+    """Set ``HF_HUB_OFFLINE=1`` for the duration of ``fn`` and restore prior env."""
+    previous = os.environ.get("HF_HUB_OFFLINE")
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    try:
+        return fn()
+    finally:
+        if previous is None:
+            os.environ.pop("HF_HUB_OFFLINE", None)
+        else:
+            os.environ["HF_HUB_OFFLINE"] = previous
+
+
+def _with_transformers_load_report_suppressed(fn: Callable[[], _T]) -> _T:
+    """Suppress noisy transformers load-report logs for model init only."""
+    modeling_logger = logging.getLogger("transformers.modeling_utils")
+    previous_level = modeling_logger.level
+    modeling_logger.setLevel(logging.ERROR)
+    try:
+        return fn()
+    finally:
+        modeling_logger.setLevel(previous_level)
 
 
 class EmbeddingService:
@@ -38,24 +101,39 @@ class EmbeddingService:
         self._model = self._load_model()
 
     def _load_model(self):  # type: ignore[no-untyped-def]
+        cache_root = Path(self._cache_folder)
+        local_only = _embedding_model_files_present(cache_root, self.model_name)
+        if local_only:
+            logger.debug(
+                "Embedding model cache hit under %s; loading with local_files_only=True",
+                cache_root,
+            )
+
+        def _instantiate(*, offline: bool) -> object:
+            from sentence_transformers import SentenceTransformer
+
+            kwargs: dict[str, object] = {
+                "device": self.device,
+                "cache_folder": self._cache_folder,
+            }
+            if offline:
+                kwargs["local_files_only"] = True
+            return SentenceTransformer(self.model_name, **kwargs)
+
+        def _instantiate_with_logging_suppressed(*, offline: bool) -> object:
+            return _with_transformers_load_report_suppressed(lambda: _instantiate(offline=offline))
+
         if self._allow_fallback:
             try:
-                from sentence_transformers import SentenceTransformer
-
-                return SentenceTransformer(
-                    self.model_name,
-                    device=self.device,
-                    cache_folder=self._cache_folder,
-                )
+                if local_only:
+                    return _with_hf_hub_offline(lambda: _instantiate_with_logging_suppressed(offline=True))
+                return _instantiate_with_logging_suppressed(offline=False)
             except Exception:
                 return None
-        from sentence_transformers import SentenceTransformer
 
-        return SentenceTransformer(
-            self.model_name,
-            device=self.device,
-            cache_folder=self._cache_folder,
-        )
+        if local_only:
+            return _with_hf_hub_offline(lambda: _instantiate_with_logging_suppressed(offline=True))
+        return _instantiate_with_logging_suppressed(offline=False)
 
     def _fallback_embed(self, text: str) -> list[float]:
         seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16) % (2**32)

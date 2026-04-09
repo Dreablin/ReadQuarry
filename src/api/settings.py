@@ -33,6 +33,7 @@ DEFAULTS: dict[str, object] = {
     "semantic_top_k": 5,
     "exact_results": 5,
     "final_context_chunks": 7,
+    "search_score_threshold": 0.6,
 }
 
 _SETTINGS: dict[str, object] = dict(DEFAULTS)
@@ -87,6 +88,7 @@ class SettingsUpdate(BaseModel):
     semantic_top_k: int | None = Field(default=None, gt=0)
     exact_results: int | None = Field(default=None, gt=0)
     final_context_chunks: int | None = Field(default=None, gt=0)
+    search_score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @field_validator("ollama_base_url", "api_base_url", mode="before")
     @classmethod
