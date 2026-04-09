@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from config import settings
 from src.api.settings import get_settings
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
-from src.core.hybrid_search import HybridSearch
+from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 
@@ -61,6 +61,14 @@ def _chroma_query_to_results(raw: dict[str, Any], top_k: int) -> list[dict[str, 
     return results
 
 
+def _score_threshold_from_settings(app_settings: dict[str, Any]) -> float:
+    raw = app_settings.get("search_score_threshold", 0.6)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return 0.6
+
+
 @router.post("/semantic")
 def semantic_search(payload: SemanticSearchRequest) -> dict:
     app_settings = get_settings()
@@ -73,6 +81,8 @@ def semantic_search(payload: SemanticSearchRequest) -> dict:
     collection_name = f"book_{payload.book_id}"
     raw = store.query(collection_name, query_embedding, n_results=payload.top_k)
     results = _chroma_query_to_results(raw, payload.top_k)
+    threshold = _score_threshold_from_settings(app_settings)
+    results = filter_rows_by_min_score(results, threshold)
     return {"results": results}
 
 
@@ -94,4 +104,6 @@ def hybrid_search(payload: HybridSearchRequest) -> dict:
         ExactSearchRequest(book_id=payload.book_id, query=payload.query, max_results=payload.exact_k)
     )["results"]
     merged = HybridSearch().merge_results(semantic, exact, final_n=payload.final_n)
+    threshold = _score_threshold_from_settings(get_settings())
+    merged = filter_rows_by_min_score(merged, threshold)
     return {"results": merged}

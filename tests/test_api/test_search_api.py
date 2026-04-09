@@ -140,3 +140,108 @@ def test_search_api_hybrid_accepts_final_n_50() -> None:
     )
     assert response.status_code == 200
     assert "results" in response.json()
+
+
+def test_semantic_search_applies_score_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B04: semantic results below ``search_score_threshold`` are removed."""
+
+    def _fake_chroma_to_results(raw: dict, top_k: int) -> list[dict]:
+        return [
+            {"chunk_id": "10", "text": "high", "score": 0.9},
+            {"chunk_id": "11", "text": "low", "score": 0.35},
+        ]
+
+    monkeypatch.setattr(search_module, "_chroma_query_to_results", _fake_chroma_to_results)
+    monkeypatch.setattr(
+        search_module,
+        "get_settings",
+        lambda: {
+            "embedding_model": "dummy",
+            "embedding_device": "cpu",
+            "search_score_threshold": 0.6,
+        },
+    )
+
+    class _Emb:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def embed_text(self, text: str) -> list[float]:
+            return [0.0] * 8
+
+    monkeypatch.setattr(search_module, "EmbeddingService", _Emb)
+
+    class _Store:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def query(self, *a: object, **k: object) -> dict:
+            return {"ids": [[]], "documents": [[]], "distances": [[]]}
+
+    monkeypatch.setattr(search_module, "VectorStore", _Store)
+
+    r = client.post("/api/search/semantic", json={"book_id": 1, "query": "q", "top_k": 5})
+    assert r.status_code == 200
+    ids = [row["chunk_id"] for row in r.json()["results"]]
+    assert ids == ["10"]
+
+
+def test_semantic_search_all_below_threshold_returns_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B04: when every candidate is below threshold, return an empty list."""
+
+    def _fake_chroma_to_results(raw: dict, top_k: int) -> list[dict]:
+        return [{"chunk_id": "1", "text": "x", "score": 0.2}]
+
+    monkeypatch.setattr(search_module, "_chroma_query_to_results", _fake_chroma_to_results)
+    monkeypatch.setattr(
+        search_module,
+        "get_settings",
+        lambda: {
+            "embedding_model": "dummy",
+            "embedding_device": "cpu",
+            "search_score_threshold": 0.6,
+        },
+    )
+
+    class _Emb:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def embed_text(self, text: str) -> list[float]:
+            return [0.0] * 8
+
+    monkeypatch.setattr(search_module, "EmbeddingService", _Emb)
+
+    class _Store:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def query(self, *a: object, **k: object) -> dict:
+            return {}
+
+    monkeypatch.setattr(search_module, "VectorStore", _Store)
+
+    r = client.post("/api/search/semantic", json={"book_id": 1, "query": "q", "top_k": 5})
+    assert r.status_code == 200
+    assert r.json()["results"] == []
+
+
+def test_hybrid_search_applies_threshold_to_merged_scores(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B04: hybrid filters merged rows by combined ``score``."""
+
+    def _sem(_payload: object) -> dict:
+        return {"results": [{"chunk_id": "1", "text": "a", "score": 0.95}]}
+
+    def _ex(_payload: object) -> dict:
+        return {"results": [{"chunk_id": "2", "text": "b", "score": 1.0}]}
+
+    monkeypatch.setattr(search_module, "semantic_search", _sem)
+    monkeypatch.setattr(search_module, "exact_search", _ex)
+    monkeypatch.setattr(search_module, "get_settings", lambda: {"search_score_threshold": 1.5})
+
+    r = client.post(
+        "/api/search/hybrid",
+        json={"book_id": 1, "query": "q", "semantic_k": 5, "exact_k": 5, "final_n": 10},
+    )
+    assert r.status_code == 200
+    assert r.json()["results"] == []

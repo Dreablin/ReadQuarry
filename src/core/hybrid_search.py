@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
+
+
+def filter_rows_by_min_score(rows: list[dict[str, Any]], threshold: float) -> list[dict[str, Any]]:
+    """Drop rows whose ``score`` is strictly below ``threshold`` (higher-is-better)."""
+    return [r for r in rows if float(r.get("score", 0.0)) >= threshold]
+
 
 class HybridSearch:
     def merge_results(self, semantic_results: list[dict], exact_results: list[dict], final_n: int = 7) -> list[dict]:
@@ -27,4 +34,9 @@ class HybridSearch:
             ),
             reverse=True,
         )
-        return ranked[: max(0, final_n)]
+        out: list[dict] = []
+        for row in ranked[: max(0, final_n)]:
+            cid = str(row["chunk_id"])
+            combined = float(scores.get(cid, 0.0))
+            out.append({**row, "score": round(combined, 6)})
+        return out

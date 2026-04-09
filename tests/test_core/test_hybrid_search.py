@@ -1,4 +1,19 @@
-from src.core.hybrid_search import HybridSearch
+from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
+
+
+def test_filter_rows_by_min_score_excludes_low_scores() -> None:
+    """B04: threshold filter drops rows below configured minimum."""
+    rows = [
+        {"chunk_id": "1", "score": 0.9},
+        {"chunk_id": "2", "score": 0.59},
+        {"chunk_id": "3", "score": 0.6},
+    ]
+    out = filter_rows_by_min_score(rows, 0.6)
+    assert [r["chunk_id"] for r in out] == ["1", "3"]
+
+
+def test_filter_rows_by_min_score_all_below_returns_empty() -> None:
+    assert filter_rows_by_min_score([{"chunk_id": "1", "score": 0.1}], 0.6) == []
 
 
 def test_hybrid_search_merges_and_deduplicates() -> None:

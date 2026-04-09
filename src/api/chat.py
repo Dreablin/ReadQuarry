@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from config import settings as app_config
 from src.api.settings import get_settings
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
-from src.core.hybrid_search import HybridSearch
+from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
 from src.core.llm_client import LLMClient
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
@@ -94,6 +94,11 @@ def _build_context_chunks(db: Session, book_id: int, query: str, app_settings: d
         exact_results.append({"chunk_id": str(cid), "text": row.text, "score": 1.0})
 
     merged = HybridSearch().merge_results(semantic_results, exact_results, final_n=final_n)
+    try:
+        thr = float(app_settings.get("search_score_threshold", 0.6))
+    except (TypeError, ValueError):
+        thr = 0.6
+    merged = filter_rows_by_min_score(merged, thr)
     chunk_ids_ordered: list[int] = []
     lines: list[str] = []
     for i, row in enumerate(merged, start=1):
