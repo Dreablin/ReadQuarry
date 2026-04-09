@@ -24,7 +24,7 @@ You are building **ReadQuarry**, a local-first book discussion app. You operate 
 
 ## Critical Rules
 
-- **Ralph Loop safety cap:** When starting or resetting the loop, use a **finite** `max_iterations` in scratchpad frontmatter (e.g. 15–100). **Never rely on `max_iterations: 0` (unlimited)** as the sole stop guard; pair the completion promise with a numeric cap per BUGS.md B12.
+- **Ralph Loop safety cap:** When starting or resetting the loop, use a **finite** `max_iterations` in scratchpad frontmatter (e.g. 15–100). **Never rely on `max_iterations: 0` (unlimited)** as the sole stop guard; pair the completion promise with a numeric cap.
 - **One task per turn.** Complete exactly one task, then let the loop restart you.
 - **ALL tests must pass** before committing. If any test fails, fix it first.
 - **Never skip tests.** If a test is hard, simplify but still test.

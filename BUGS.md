@@ -1,330 +1,260 @@
-# ReadQuarry — Bug Reports
+# ReadQuarry — Bug Reports (Phase 8)
 
 > This file is the bug specification reference for the Ralph Loop bugfix phase.
 > **Do NOT modify this file from the loop** — it is read-only for the agent.
 
 ---
 
-## B01 — Books stored in-memory, chat requires DB row — session creation always fails
-
-**Severity**: critical
-**Where**: `src/api/books.py`, `src/api/chat.py`, `src/models/`
-**Steps to reproduce**:
-1. Start the app, upload an EPUB via the UI
-2. Select the uploaded book in the dropdown
-3. Try to send a chat message
-
-**Expected behavior**: A chat session is created for the selected book and the message is sent.
-**Actual behavior**: Error "Choose a book and open a chat session first." — because `ensureSession` in `app.js` calls `createChatSession({ book_id })`, which hits `POST /api/chat/sessions`, which does `db.get(Book, payload.book_id)` and returns 404 since the book was only added to the in-memory `_BOOKS` dict, not the SQLAlchemy `Book` table.
-**Notes**: The fix must unify book storage. The upload endpoint in `books.py` should create a `Book` row in the SQLAlchemy DB (same DB used by chat). Remove the in-memory `_BOOKS` dict entirely and use the DB for list/get/delete too. The `BookProcessor` pipeline (parse, chunk, embed, index) should also run during upload so the book is fully searchable. Consider running the processor as a background task if it's slow.
-
----
-
-## B02 — Semantic search endpoint is a hardcoded placeholder
-
-**Severity**: critical
-**Where**: `src/api/search.py`, `src/core/embeddings.py`, `src/core/vector_store.py`
-**Steps to reproduce**:
-1. Upload a book
-2. Go to Search view
-3. Search for any term
-
-**Expected behavior**: Real semantic search results from the book's vectorized chunks.
-**Actual behavior**: Returns a single fake result like `{chunk_id: "1_sem_1", text: "Semantic match for 'query'", score: 0.9}` — hardcoded in the endpoint.
-**Notes**: The `POST /api/search/semantic` endpoint must use `EmbeddingService` to embed the query, then `VectorStore` to query the book's ChromaDB collection. The collection name should match what `BookProcessor` uses during ingestion (likely `book_{id}`). The exact search via Tantivy appears to be wired correctly. The hybrid endpoint calls both, so fixing semantic fixes hybrid too.
-
----
-
-## B03 — Settings don't persist between restarts
-
-**Severity**: critical
-**Where**: `src/api/settings.py`, `config.py`
-**Steps to reproduce**:
-1. Open Settings, change LLM mode or Ollama URL
-2. Save settings
-3. Restart the app
-4. Open Settings again
-
-**Expected behavior**: Previously saved settings are loaded.
-**Actual behavior**: All settings reset to defaults because they live in an in-memory `_SETTINGS` dict.
-**Notes**: Save settings to a JSON file at `{config.data_dir}/settings.json`. On startup, load from the file if it exists, otherwise use defaults. The `GET`, `PUT`, and `POST /reset` endpoints should read/write this file. Keep the in-memory dict as a cache but sync to disk on every write.
-
----
-
-## B04 — GPU loaded 25-30% when idle due to infinite CSS animation
+## B01 — Log viewer resets text selection every 2 seconds — impossible to copy log entries
 
 **Severity**: major
-**Where**: `static/css/style.css`
+**Where**: `static/js/components/log-viewer.js`, `src/api/logs.py`
 **Steps to reproduce**:
-1. Open the web interface
-2. Do nothing
-3. Check GPU usage in Task Manager
+1. Open the app, switch to the Logs tab.
+2. Try to select text in the log viewer to copy it.
+3. Every 2 seconds the selection disappears because the DOM is fully replaced.
 
-**Expected behavior**: Near-zero GPU usage when idle.
-**Actual behavior**: GPU at 25-30% continuously.
-**Notes**: The `.app-header` has `animation: header-shimmer 8s ease-in-out infinite` which animates `filter: saturate()`. This forces continuous GPU compositing. Either remove this animation entirely, make it a one-shot on page load, or replace `filter` with a less expensive property (e.g. opacity on a pseudo-element). Also check if `backdrop-filter: blur()` on glass panels contributes — if so, consider reducing or removing it.
+**Expected behavior**: The log viewer updates only when new log entries arrive. Text selection should remain stable between polls.
+**Actual behavior**: `log-viewer.js` calls `fetchLogs()` every 2 seconds via `setInterval` and **unconditionally** replaces `pre.textContent = lines.join("\n")`, destroying any text selection.
 
----
-
-## B05 — Multi-language support (Russian and English)
-
-**Severity**: major
-**Where**: `src/core/embeddings.py`, `src/core/search_engine.py`, `src/core/chunking.py`
-**Steps to reproduce**:
-1. Upload a Russian-language EPUB
-2. Search for a Russian word or phrase
-3. Try to discuss the book in Russian
-
-**Expected behavior**: Search and discussion work equally well in Russian and English.
-**Actual behavior**: Unknown — but the embedding model `all-MiniLM-L6-v2` is English-focused and may produce poor vectors for Russian text. Tantivy's default analyzer may not tokenize Russian well.
-**Notes**: For embeddings, consider switching to `paraphrase-multilingual-MiniLM-L12-v2` (also from sentence-transformers, ~470MB, 384-dim, supports 50+ languages including Russian). For Tantivy exact search, ensure the index uses a language-aware or simple tokenizer that handles Cyrillic. For chunking, sentence splitting must handle Russian punctuation correctly. Update `requirements.txt` if the model name changes. The model name should be configurable in settings so users can choose.
-
----
-
-## B06 — LLM settings: split into Ollama/Cloud groups with dropdown selector
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/components/settings.js`, `static/css/style.css`
-**Steps to reproduce**:
-1. Open Settings dialog
-
-**Expected behavior**: A dropdown at the top selects "Ollama" or "Cloud LLM". Only the fields relevant to the selected mode are visible. Switching modes preserves previously entered values for both modes.
-**Actual behavior**: All LLM fields are shown at once in a flat list with no grouping.
-**Notes**: Group fields into two `<fieldset>` or `<div>` containers: one for Ollama (base URL, model name) and one for Cloud (API key, base URL, model name). The `settings-llm_mode` select toggles visibility. All field values must be saved to settings regardless of which mode is active, so switching back restores previous values. Use CSS `display: none`/`block` for toggling, not DOM removal.
-
----
-
-## B07 — Settings dialog: tabbed layout (LLM vs Embeddings & Search)
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/components/settings.js`, `static/css/style.css`
-**Steps to reproduce**:
-1. Open Settings dialog
-
-**Expected behavior**: Settings are organized in two tabs: "LLM" and "Embeddings & Search". Clicking a tab shows only that section.
-**Actual behavior**: All settings fields are stacked vertically in one scrollable form.
-**Notes**: Add tab buttons inside the settings dialog. Each tab shows/hides a `<div>` containing the relevant fields. The LLM tab contains the Ollama/Cloud mode selector and LLM fields (from B06). The Embeddings & Search tab contains embedding model, device, semantic top-k, and other search parameters. Tab state does not need to persist — default to the LLM tab on open.
-
----
-
-## B08 — Cloud LLM mode: show API key security warning
-
-**Severity**: minor
-**Where**: `static/index.html`, `static/js/components/settings.js`
-**Steps to reproduce**:
-1. Open Settings
-2. Select "Cloud" in the LLM mode dropdown
-
-**Expected behavior**: A warning message appears: "All settings, including API keys, are stored in a local file at data/settings.json. Keep this file secure!"
-**Actual behavior**: No warning shown.
-**Notes**: Add a `<p>` or `<div>` with a warning class inside the Cloud fields group. Show it only when Cloud mode is selected (same visibility toggle as B06). The file path shown should match the actual settings file path from B03. Style it with a distinct warning color (e.g. amber/yellow text or border).
-
----
-
-## B09 — Discussion and Search should be on separate screens with navigation buttons
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/app.js`, `static/css/style.css`
-**Steps to reproduce**:
-1. Open the app
-
-**Expected behavior**: Two clearly labeled buttons at the top of the main area: "Discussion" and "Search". Clicking each shows the corresponding full-screen view. The current view is visually highlighted.
-**Actual behavior**: Discussion is the default view with a small "Search" link; switching back requires a "Back" button inside the search panel. The UX is not symmetric.
-**Notes**: Replace the current `#search-open` / `#search-back` links with two equal buttons in a tab-bar or button-group in the header or top of `#app-main`. Both views should be full-width. The active button should have a distinct style (e.g. accent color, underline). Keep the `data-view` attribute approach on `#app-main` for CSS-driven layout switching.
-
----
-
-## B10 — Debug log viewer screen (third navigation button)
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/app.js`, `static/css/style.css`, `main.py`, new file `static/js/components/log-viewer.js`, new file `src/api/logs.py`
-**Steps to reproduce**:
-1. Open the app
-
-**Expected behavior**: A third button "Logs" in the top navigation opens a scrollable log viewer. New log entries appear at the bottom. The list scrolls to show the latest entry.
-**Actual behavior**: No log viewer exists.
-**Notes**: Backend: create a new API endpoint that streams or returns recent log entries. Options: (a) SSE endpoint that pushes log lines in real-time, or (b) a simple `GET /api/logs` returning the last N lines from a ring buffer. Use Python's `logging` module with a custom handler that captures log records into a deque. Frontend: new `log-viewer.js` component renders log entries in a `<pre>` or `<ul>` inside a new `#view-logs` panel. Auto-scroll to bottom on new entries. Add "Logs" as a third view in the navigation alongside Discussion and Search.
-
----
-
-## B11 — Detailed logging on book ingestion
-
-**Severity**: major
-**Where**: `src/api/books.py`, `src/core/book_processor.py`
-**Steps to reproduce**:
-1. Upload a book
-
-**Expected behavior**: Detailed log messages during ingestion: file saved where, parser used, number of chapters found, chunking strategy, number of chunks created, embeddings generated, vectors stored in ChromaDB (collection name, count), Tantivy index updated (index path, document count), total processing time.
-**Actual behavior**: Minimal or no logging during book upload and processing.
-**Notes**: Add `logger.info(...)` calls at each stage of `BookProcessor.process()` and in the books upload endpoint. These logs will be visible in the log viewer (B10). Include counts and paths so the user can verify what happened. Log both success and any partial failures.
-
----
-
-## B12 — Fix Ralph Loop scratchpad safety cap
-
-**Severity**: minor
-**Where**: `.cursor/ralph/scratchpad.md`
-**Steps to reproduce**:
-1. Start a Ralph Loop with `max_iterations: 0` (unlimited)
-2. All tasks are already complete or no tasks exist
-3. The loop outputs ALL_TASKS_COMPLETE but keeps cycling
-
-**Expected behavior**: The loop stops after outputting the completion promise.
-**Actual behavior**: The loop continues indefinitely, burning iterations.
-**Notes**: This is an infrastructure issue. When starting the next Ralph Loop, always set `max_iterations` to a reasonable finite number (e.g. 50 or 100) as a safety net. The completion promise should still be the primary stop mechanism, but `max_iterations` acts as a hard cap. This bug is "fixed" by deleting the stale scratchpad (already done) and ensuring the next loop start uses a finite cap.
-
----
-
-## B13 — Duplicate book upload fails silently — no visible error in UI or backend logs
-
-**Severity**: major
-**Where**: `src/api/books.py`, `static/js/components/book-upload.js`
-**Steps to reproduce**:
-1. Upload an EPUB file successfully.
-2. Try to upload the exact same EPUB file again.
-3. Observe: nothing happens — no error message visible, no log entry in the Logs tab.
-
-**Expected behavior**: A clear, visible error message tells the user the book already exists. The backend logs record the duplicate attempt.
-**Actual behavior**: The backend correctly returns HTTP 409 with `{"detail": "Book with this content already exists"}`, but:
-- **Backend**: There is no `logger.warning(...)` call on the duplicate-detection path (line ~64 of `books.py`), so the Logs viewer shows nothing.
-- **Frontend**: The error is sent to `options.onError(error)` which calls `setStatus(err.message)` — this updates the **status bar** at the very bottom of the page. However, the **upload dialog is still open on top**, hiding the status bar. The user never sees the message.
-
-**Fix requirements**:
-1. **Backend** (`src/api/books.py`): Add `logger.warning("Duplicate book upload rejected: file_hash=%s filename=%r", file_hash, file.filename)` before raising the 409, so the attempt appears in the Logs tab.
-2. **Frontend** (`static/js/components/book-upload.js`): In the `catch` block of the form submit handler, display the error **inside the upload dialog** (e.g. in a dedicated `<p id="upload-feedback">` element) rather than only in the status bar. The dialog should remain open so the user can see the error message and try a different file. Make the error text clearly visible (e.g. red/warning color).
-
----
-
-## B14 — "Test LLM" button always shows success — endpoint is a stub
-
-**Severity**: major
-**Where**: `src/api/settings.py` (endpoint `POST /api/settings/test-llm`), `src/core/llm_client.py`, `static/js/components/settings.js`
-**Steps to reproduce**:
-1. Open Settings.
-2. Set LLM mode to Ollama with a URL pointing to a non-running Ollama instance (e.g. `http://localhost:99999`).
-3. Click "Test LLM".
-4. Observe: feedback says `{"status":"ok"}`.
-
-**Expected behavior**: The test actually connects to the configured LLM endpoint. On failure (connection refused, invalid API key, model not found, timeout) the UI shows a descriptive error. On success, it shows confirmation (e.g. "Connected to llama3.2 on Ollama").
-**Actual behavior**: The endpoint (`src/api/settings.py` line 131) is a placeholder that always returns `{"status": "ok"}` without making any network call.
-
-**Fix requirements**:
-1. **Backend** (`src/api/settings.py`): Replace the stub `test_llm` endpoint with real logic:
-   - Read current `_SETTINGS` (or accept an optional request body to test before saving).
-   - Instantiate `LLMClient` from `src/core/llm_client.py` with those settings.
-   - For **Ollama mode**: call `llm_client.chat_completion(messages=[{"role":"user","content":"ping"}], max_tokens=1)` inside a try/except. Catch `openai.APIConnectionError`, `openai.AuthenticationError`, timeouts, and any other `Exception`. Return `{"status": "ok", "model": "<model>", "mode": "<mode>"}` on success, or `{"status": "error", "detail": "<error description>"}` on failure. Set HTTP status to 200 on success and **200 on failure too** (so the frontend JS can always parse the JSON body — the `_jsonOrThrow` helper throws on non-2xx).
-   - For **Cloud mode**: same approach — attempt a minimal completion to validate API key + base URL.
-   - Add a timeout (e.g. 10 seconds) so the test doesn't hang forever.
-   - Log the result with `logger.info(...)` on success and `logger.warning(...)` on failure.
-2. **Frontend** (`static/js/components/settings.js`): Update the Test LLM click handler to interpret the response. If `res.status === "error"`, display the error clearly in red. If `res.status === "ok"`, display a green success message (e.g. "Connected to {model} via {mode}").
-
----
-
-## B15 — Settings dialog action buttons have poor contrast — unreadable on dark theme
-
-**Severity**: minor
-**Where**: `static/css/style.css`, `static/index.html`
-**Steps to reproduce**:
-1. Open Settings dialog.
-2. Look at the bottom row of buttons: Close, Reset defaults, Test LLM, Save.
-
-**Expected behavior**: All buttons are clearly readable with good contrast against the dark background.
-**Actual behavior**: The buttons in `.dialog__actions` have **no custom CSS styling** — they use browser-default `<button>` appearance, which renders as light gray buttons with dark text on some browsers, or as nearly invisible gray-on-gray on others. On a dark theme with `background: #12141f`, they look washed out and hard to read.
-
-**Fix requirements** (in `static/css/style.css`):
-1. Add explicit styling for `.dialog__actions button` with:
-   - Readable text color (e.g. `var(--color-text)` or `#fff`).
-   - Visible background (e.g. `var(--color-surface-strong)` or a subtle gradient).
-   - Border matching the theme (e.g. `1px solid var(--color-border)`).
-   - Rounded corners matching the design system (e.g. `var(--radius-sm)`).
-   - Hover state with lighter background or glow.
-   - Cursor pointer.
-2. Optionally give the "Save" button (primary action) a distinct accent style (e.g. gradient from `--color-accent-start` to `--color-accent-end`, white text) to make it stand out from secondary buttons (Close, Reset, Test).
-3. Apply the same fix to `.dialog--upload .dialog__actions button` as well (the upload dialog has the same issue).
-
----
-
-## B16 — No "Clear All" button to delete all books and reset databases
-
-**Severity**: major
-**Where**: `src/api/books.py`, `static/index.html`, `static/js/components/settings.js`, `static/js/api.js`
-**Steps to reproduce**:
-1. Upload several books.
-2. Want to start fresh / clear all data.
-3. No way to do this without manually deleting files in `data/`.
-
-**Expected behavior**: A "Clear All Data" button in the Settings dialog (or a dedicated section) that deletes all books and associated data (SQLite rows, ChromaDB collections, search indices, uploaded files).
-**Actual behavior**: Only individual book deletion exists (`DELETE /api/books/{book_id}`) — and it's only exposed in the API, not in the frontend UI.
-
-**Fix requirements**:
-1. **Backend** (`src/api/books.py`): Add a `DELETE /api/books` (or `POST /api/books/clear-all`) endpoint that:
-   - Queries all `Book` rows from the database.
-   - For each book: deletes its ChromaDB collection (`book_{id}`), removes its search index directory (`tantivy_index/book_{id}`), and removes its uploaded file from `data/uploads/`.
-   - Deletes all `Book` rows from the SQLite DB (which cascades to paragraphs, chunks, chat sessions, chat messages).
-   - Logs the operation with `logger.info("Cleared all books: count=%d", count)`.
-   - Returns `{"status": "cleared", "deleted_count": N}`.
-2. **Frontend API** (`static/js/api.js`): Add `clearAllBooks()` function that calls the new endpoint.
-3. **Frontend UI** (`static/index.html`, `static/js/components/settings.js` or `static/js/app.js`): Add a "Clear All Data" button in the Settings dialog (in the actions area or as a separate danger zone section). On click:
-   - Show a confirmation prompt (`confirm("Delete all books and conversations? This cannot be undone.")` or a custom confirmation dialog).
-   - If confirmed, call `clearAllBooks()`.
-   - On success, refresh the book list dropdown, clear current chat, and show feedback.
-   - Style the button with a warning/danger color (e.g. red tint) to signal destructiveness.
-
----
-
-## B17 — Navigation tabs always show Logs panel — CSS `display: flex` overrides HTML `hidden` attribute
-
-**Severity**: critical
-**Where**: `static/css/style.css`, `static/js/app.js`
-**Steps to reproduce**:
-1. Open the app.
-2. Click "Discussion" — Logs panel is visible.
-3. Click "Search" — Logs panel is visible.
-4. Click "Logs" — Logs panel is visible.
-5. Discussion and Search content are never accessible.
-
-**Expected behavior** (per PRD §3.2, §3.3 and B09):
-- **Discussion** tab shows the chat panel (left) + references panel (right) in split layout.
-- **Search** tab shows the search form + results in a single-column layout.
-- **Logs** tab shows the log viewer in a single-column layout.
-- Only the active view's panels are visible.
-
-**Actual behavior**: Both `#view-search` (`.panel--search`) and `#view-logs` (`.panel--logs`) are **always visible** despite having the HTML `hidden` attribute. The Logs panel appears on top because it comes later in the DOM and shares the same grid cell.
-
-**Root cause**: CSS rules override the `hidden` attribute. In `style.css`:
-```css
-.panel--logs {
-  display: flex;           /* ← overrides [hidden] { display: none } */
-  flex-direction: column;
-  min-height: 0;
-}
-.panel--search {
-  display: flex;           /* ← same problem */
-  flex-direction: column;
-  min-height: 0;
+**Root cause** (in `static/js/components/log-viewer.js`):
+```javascript
+async function refresh() {
+  const data = await fetchLogs();
+  const entries = Array.isArray(data?.entries) ? data.entries : [];
+  const lines = entries.map((e) => ...);
+  pre.textContent = lines.join("\n");     // ← always replaces, even if nothing changed
+  pre.scrollTop = pre.scrollHeight;
 }
 ```
-The HTML `hidden` attribute works by setting `display: none` via the browser's user-agent stylesheet, but **any author CSS rule setting `display` overrides it** because author styles have higher priority than UA styles. The `.panel--logs` and `.panel--search` rules set `display: flex`, so `hidden` has no effect.
+No comparison is done between old and new content.
 
-**Fix requirements** — choose ONE approach:
+**Fix requirements**:
+1. **Backend** (`src/api/logs.py`): Add a `count` field to the `GET /api/logs` response: `{"entries": [...], "count": len(_LOG_BUFFER)}`. The count is the total number of entries ever appended (or simply `len(_LOG_BUFFER)` if that is sufficient for change detection). Alternatively, return a monotonic `seq` or timestamp of the latest entry.
+2. **Frontend** (`static/js/components/log-viewer.js`):
+   - Track the last known entry count (e.g. `let lastCount = -1`).
+   - In `refresh()`, compare `data.count` (or `entries.length`) to `lastCount`. **Only update DOM if count changed.**
+   - When updating, set `lastCount = data.count`.
+   - Auto-scroll only on update, not on no-op polls.
+3. Tests: verify the log viewer component tracks `lastCount` and skips DOM writes when count is unchanged.
 
-**(a) Class-based visibility (preferred)**: Instead of using the HTML `hidden` attribute, toggle a CSS class (e.g. `view--hidden`) that uses `display: none !important`. In `app.js` `setView()`, replace `viewSearch.hidden = ...` / `viewLogs.hidden = ...` with `viewSearch.classList.toggle("view--hidden", !showSearch)` / `viewLogs.classList.toggle("view--hidden", !showLogs)`. Do the same for `chatPanel` and `refsPanel`. Add `.view--hidden { display: none !important; }` to `style.css`. Remove the `hidden` attribute from the initial HTML for `#view-search` and `#view-logs` and add the `view--hidden` class instead.
+---
 
-**(b) Targeted `[hidden]` override**: Add rules in `style.css`:
-```css
-.panel--search[hidden],
-.panel--logs[hidden] {
-  display: none;
-}
-```
-This ensures `hidden` wins when the attribute is present. Less invasive but more fragile.
+## B02 — Ollama always returns "[Empty block returned from LLM]" — chat responses are blank
 
-**(c)** Fix the existing `.panel--search` / `.panel--logs` rules to not set `display` unconditionally — move `display: flex` into a `:not([hidden])` selector:
-```css
-.panel--logs:not([hidden]) {
-  display: flex;
-  ...
-}
-```
+**Severity**: critical
+**Where**: `src/core/llm_client.py`, `src/api/chat.py`
+**Steps to reproduce**:
+1. Have Ollama running locally with any model loaded.
+2. Upload a book, select it, send any chat message.
+3. The assistant always responds with "[Empty block returned from LLM]".
 
-Approach **(a)** is recommended because it is robust, explicit, and consistent with how the nav tab styling already works (class-based toggling).
+**Expected behavior**: The assistant returns a meaningful text response from the Ollama model.
+**Actual behavior**: `chat.py` line ~162 fires `logger.warning("LLM returned empty response")` and substitutes the placeholder because `content` is empty string.
+
+**Investigation path**:
+The `_ollama_chat` method in `llm_client.py` sends a request to `{ollama_base}/api/chat` and parses `data.get("message").get("content", "")`. Possible causes of empty content:
+
+1. **Model mismatch**: settings have `ollama_model_id: "llama3.2"` but the user has a different model loaded (e.g. `qwen2.5:7b`). Ollama may auto-pull and timeout, or return an empty response for a missing model.
+2. **Response parsing**: the raw Ollama JSON response may have a different structure than expected (e.g. `response` field instead of `message.content` for certain API versions).
+3. **Content lost in wrapper**: the `_OllamaResponse`/`_OllamaChoice`/`_OllamaMessage` wrappers may silently swallow content.
+
+**Fix requirements**:
+1. **Add raw response logging** in `_ollama_chat` (in `src/core/llm_client.py`):
+   - After `data = resp.json()`, add `logger.debug("Ollama raw response body: %s", json.dumps(data, ensure_ascii=False)[:2000])` (truncate to avoid flooding).
+   - Log `resp.status_code` explicitly.
+2. **Robust content extraction**: After extracting `content` from `data["message"]["content"]`, also check `data.get("response", "")` as a fallback (Ollama's `/api/generate` format). Log which field was used.
+3. **Model validation**: Before making the completion call, log the model name from settings and consider calling `GET {ollama_base}/api/tags` to verify the model exists. If it doesn't, return a clear error message instead of an empty response.
+4. **Empty response detail**: In `chat.py`, when content is empty, include the raw response length and model name in the warning log: `logger.warning("LLM returned empty response session_id=%s model=%s raw_len=%d", session_id, model_name, len(raw_body))`.
+5. Tests: mock Ollama response with real JSON shape and verify non-empty content is passed through.
+
+---
+
+## B03 — Add `search_score_threshold` setting to backend and frontend
+
+**Severity**: major
+**Where**: `src/api/settings.py`, `static/index.html`, `static/js/components/settings.js`
+**Steps to reproduce**:
+1. Open Settings → Embeddings & Search tab.
+2. There is no option to set a minimum score threshold for search results.
+
+**Expected behavior**: A new "Search score threshold" field in the Embeddings & Search settings tab with default value `0.6`. The value is persisted like other settings.
+**Actual behavior**: No such setting exists. Search always returns exactly `top_k` / `max_results` results regardless of how relevant they are.
+
+**Fix requirements**:
+1. **Backend** (`src/api/settings.py`):
+   - Add `"search_score_threshold": 0.6` to `DEFAULTS` dict.
+   - Add `search_score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)` to `SettingsUpdate` model.
+2. **Frontend** (`static/index.html`):
+   - Add a new field in `#settings-panel-embeddings` fieldset:
+     ```html
+     <label for="settings-search_score_threshold">Search score threshold</label>
+     <input type="number" id="settings-search_score_threshold" name="search_score_threshold" min="0" max="1" step="0.05" />
+     ```
+3. **Frontend** (`static/js/components/settings.js`):
+   - Add `"search_score_threshold"` to the `FIELD_KEYS` array.
+   - In `readForm()`, parse it as a float (same as `temperature`).
+4. Tests: verify the new setting appears in defaults, can be updated via PUT, and persists in JSON file.
+
+---
+
+## B04 — Apply search score threshold filtering to search results
+
+**Severity**: major
+**Where**: `src/api/search.py`, `src/core/hybrid_search.py`, `src/api/chat.py`
+**Depends on**: B03 (the setting must exist first)
+**Steps to reproduce**:
+1. Upload a book, go to Search, search for something generic.
+2. All `top_k` results are returned even if most have very low scores (e.g. 0.2).
+
+**Expected behavior**: Results with score below `search_score_threshold` (default 0.6) are excluded. If all results are below threshold, return an empty list (not artificially padded results).
+**Actual behavior**: No score filtering — all `top_k` results from ChromaDB and all `max_results` from exact search are returned regardless of score.
+
+**Fix requirements**:
+1. **Semantic search** (`src/api/search.py` → `semantic_search` and `_chroma_query_to_results`):
+   - Read `search_score_threshold` from `get_settings()`.
+   - After computing score for each result, filter out results where `score < threshold`.
+2. **Exact search** (`src/api/search.py` → `exact_search`):
+   - The exact search scores from `SearchEngine` are occurrence counts (1, 2, ...), not 0–1. These should NOT be filtered by the same threshold (they use a different scale). Leave exact search unfiltered, or normalize exact scores to 0–1 range before filtering.
+   - Recommended: only apply threshold to semantic results and hybrid merge output, leave exact search as-is.
+3. **Hybrid search** (`src/api/search.py` → `hybrid_search` or `src/core/hybrid_search.py`):
+   - After `HybridSearch().merge_results(...)`, filter the merged list by threshold before returning.
+   - The hybrid score is a sum of semantic + exact scores, which can exceed 1.0. Apply the threshold to the **semantic component** during merge, OR apply a normalized threshold after merge. Simplest: filter the final merged results by checking `row["score"] >= threshold` (since merged scores are additive, a combined score ≥ 0.6 means at least moderate relevance).
+4. **Chat context** (`src/api/chat.py` → `_build_context_chunks`):
+   - Also apply the threshold when building RAG context to avoid feeding low-relevance chunks to the LLM.
+5. Tests: verify that results below threshold are excluded, and that an empty result set is returned when all scores are below threshold.
+
+---
+
+## B05 — Include chunk relevance scores in chat SSE done event
+
+**Severity**: major
+**Where**: `src/api/chat.py`
+**Steps to reproduce**:
+1. Send a chat message in Discussion.
+2. The `done` SSE event contains only `referenced_chunk_ids` — no scores.
+
+**Expected behavior**: The `done` SSE event includes both chunk IDs and their relevance scores, so the frontend can display how confident the model was about each reference.
+**Actual behavior**: `_build_context_chunks` calculates scores internally (via `HybridSearch.merge_results`) but discards them — only returns `chunk_ids_ordered`.
+
+**Fix requirements**:
+1. **`_build_context_chunks`** in `src/api/chat.py`:
+   - Change return type to `tuple[str, list[int], list[float]]` — add a list of scores parallel to `chunk_ids_ordered`.
+   - When building `chunk_ids_ordered`, also collect `float(row.get("score", 0.0))` for each merged result.
+2. **`_stream_chat`** in `src/api/chat.py`:
+   - Unpack the third element: `context_text, ref_chunk_ids, ref_chunk_scores = _build_context_chunks(...)`.
+   - In the `done` SSE event, include scores: `{"type": "done", "referenced_chunk_ids": ref_chunk_ids, "referenced_chunk_scores": ref_chunk_scores}`.
+3. **`ChatMessage` storage** (optional): optionally persist scores alongside `referenced_chunks` in the DB. This can be a JSON dict mapping chunk_id to score, or a separate JSON array. If not stored, scores are only available for the current message (acceptable for now).
+4. Tests: verify the `done` SSE payload contains `referenced_chunk_scores` as a list of floats with the same length as `referenced_chunk_ids`.
+
+**Important**: This change must NOT break the existing `referenced_chunk_ids` field — it is additive.
+
+---
+
+## B06 — Display relevance score for each reference in the references panel
+
+**Severity**: minor
+**Where**: `static/js/components/references.js`, `static/js/components/chat.js`, `static/js/app.js`
+**Depends on**: B05 (scores must be available in the SSE event)
+**Steps to reproduce**:
+1. Send a chat message in Discussion.
+2. Look at the References panel — chunks are shown with [ordinal], chapter, chunk index, and text.
+3. No indication of how relevant each reference is.
+
+**Expected behavior**: Each reference card shows a relevance score (e.g. "Score: 0.8421") after the chunk index metadata. This helps the user judge quality of the references.
+**Actual behavior**: No score is displayed. The score data is not passed from the chat component to the references component.
+
+**Important note from the user**: The score display must NOT depend on or be limited by the search_score_threshold setting from B03/B04. It is purely informational — always display the score for every reference shown, regardless of threshold value.
+
+**Fix requirements**:
+1. **`chat.js`**: In the `done` event handler, pass `ev.referenced_chunk_scores` alongside `ev.referenced_chunk_ids` to `options.onDone(...)`. Update the `onDone` callback signature.
+2. **`app.js`**: Update the `onDone` handler in `initChat` options to pass scores through to `refs.appendReferencedChunkIds(bid, ids, scores)`.
+3. **`references.js`**:
+   - Update `appendReferencedChunkIds(bookId, chunkIds, scores)` to accept an optional `scores` array.
+   - When rendering each reference chunk, pass `score` to `renderReferenceChunk`.
+   - In `renderReferenceChunk`, if a score is provided, add it to the meta line: after "Chunk index: N" add "· Score: 0.XXXX" (formatted to 4 decimal places).
+4. Tests: verify the score is included in the rendered reference card metadata.
+
+---
+
+## B07 — Write Ollama integration tests — verify LLM interaction produces non-empty responses
+
+**Severity**: major
+**Where**: new file `tests/test_integration/test_ollama_integration.py`
+**Steps to reproduce**: N/A — tests don't exist yet.
+
+**Expected behavior**: Integration tests validate that the `LLMClient` → Ollama pipeline returns non-empty responses when Ollama is available.
+**Actual behavior**: No integration tests for Ollama exist.
+
+**Fix requirements**:
+1. Create `tests/test_integration/__init__.py` and `tests/test_integration/test_ollama_integration.py`.
+2. **Skip logic**: At the start of the test module or in a fixture, check if Ollama is running by attempting `GET http://localhost:11434/api/tags` (or `httpx.get("http://localhost:11434/api/tags", timeout=5)`). If the connection fails (refused, timeout), **skip the entire module** with `pytest.skip("Ollama is not running")`.
+3. **Detect loaded model**: If Ollama is running, call `ollama ps` via `subprocess.run(["ollama", "ps"], capture_output=True, text=True)` or query `GET http://localhost:11434/api/ps` to find which model is currently loaded/running. Extract the model name from the output. If no model is loaded, try `GET http://localhost:11434/api/tags` to get the list of available models and pick the first one. If no models at all, skip with `pytest.skip("No Ollama models available")`.
+4. **Test: non-empty response**: Instantiate `LLMClient` with settings `{"llm_mode": "ollama", "ollama_base_url": "http://localhost:11434", "ollama_model_id": detected_model, "max_tokens": 64, "temperature": 0.3}`. Call `client.chat_completion([{"role": "user", "content": "What can you do?"}])`. Assert that `response.choices[0].message.content` is a non-empty string (`.strip()` is not empty).
+5. **Test: response structure**: Verify that the response has `choices` attribute, `choices[0].message` exists, `choices[0].message.content` is a `str`.
+6. Use `pytest` markers: `@pytest.mark.integration` so these can be run selectively.
+7. All tests must pass when Ollama is not running (they skip cleanly).
+
+---
+
+## B08 — HuggingFace Hub network access on first search after restart despite local cache
+
+**Severity**: major
+**Where**: `src/core/embeddings.py`
+**Steps to reproduce**:
+1. Upload a book (model downloads to `data/models/`).
+2. Restart the application.
+3. Perform a search — logs show:
+   ```
+   Warning: You are sending unauthenticated requests to the HF Hub.
+   Loading weights: 100%|███| 199/199 [00:00<00:00, 9576.59it/s]
+   ```
+
+**Expected behavior**: After the model is cached in `data/models/`, subsequent loads should be fully offline — no HuggingFace Hub access at all.
+**Actual behavior**: `SentenceTransformer(model_name, cache_folder=...)` still contacts HuggingFace Hub to check for model updates, even when the model files exist locally.
+
+**Root cause**: The `sentence-transformers` library by default checks for newer versions of the model on HuggingFace Hub. The `SentenceTransformer` constructor does NOT use `local_files_only=True` by default.
+
+**Fix requirements**:
+1. **In `EmbeddingService._load_model()`** (`src/core/embeddings.py`):
+   - Before constructing `SentenceTransformer`, check if the model already exists in the cache folder. The cache stores models under `{cache_folder}/sentence-transformers/{model_name}/` (or `{cache_folder}/{model_name}/` depending on version). Check if this directory exists and contains files.
+   - If the model directory exists (cache hit), pass `local_files_only=True` to `SentenceTransformer(...)`. This prevents any network access.
+   - If the model directory does NOT exist (first download), load normally without `local_files_only` (so it can download).
+   - This way, first use downloads the model, subsequent uses are fully offline.
+2. **Environment variable approach (complementary)**: Set `HF_HUB_OFFLINE=1` environment variable when the cache directory exists. This is a belt-and-suspenders approach alongside `local_files_only`.
+3. Tests: verify that `SentenceTransformer` is called with `local_files_only=True` when the cache directory exists.
+
+---
+
+## B09 — BERT "UNEXPECTED: embeddings.position_ids" load report clutters logs every search
+
+**Severity**: minor
+**Where**: `src/core/embeddings.py`
+**Steps to reproduce**:
+1. Perform any search or chat that triggers embedding.
+2. In logs:
+   ```
+   BertModel LOAD REPORT from: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+   Key                     | Status     |
+   ------------------------+------------+
+   embeddings.position_ids | UNEXPECTED |
+   Notes: - UNEXPECTED: can be ignored when loading from different task/architecture
+   ```
+
+**Expected behavior**: This harmless model-loading diagnostic should not appear in the application logs.
+**Actual behavior**: Every time `SentenceTransformer` loads the model (which happens on each new `EmbeddingService` instance), this report is printed to stderr or via Python logging, appearing in the Logs tab.
+
+**Root cause**: The `paraphrase-multilingual-MiniLM-L12-v2` checkpoint includes `embeddings.position_ids` in its state dict, but the `BertModel` class does not define this parameter (it computes `position_ids` on-the-fly). The `transformers` library logs this mismatch as a diagnostic. It is completely harmless.
+
+**Fix requirements**:
+1. **Suppress the load report** in `_load_model()`:
+   - Wrap the `SentenceTransformer(...)` call in a context that temporarily suppresses the specific `transformers` logger or redirects it:
+     ```python
+     import logging
+     logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+     # ... load model ...
+     logging.getLogger("transformers.modeling_utils").setLevel(logging.WARNING)
+     ```
+   - Alternatively, use `transformers.logging.set_verbosity_error()` before loading and restore after.
+2. **Do NOT suppress all warnings globally** — only suppress during model loading, then restore. Other `transformers` warnings may be legitimate.
+3. Tests: verify that after loading the model, the `transformers.modeling_utils` logger is restored to its previous level (not permanently silenced).
