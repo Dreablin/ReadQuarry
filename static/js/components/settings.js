@@ -27,6 +27,7 @@ const FIELD_KEYS = [
   "semantic_top_k",
   "exact_results",
   "final_context_chunks",
+  "search_score_threshold",
 ];
 
 /**
@@ -100,7 +101,7 @@ function readForm() {
     ) {
       const n = parseInt(String(raw), 10);
       if (!Number.isNaN(n)) out[key] = n;
-    } else if (key === "temperature") {
+    } else if (key === "temperature" || key === "search_score_threshold") {
       const n = parseFloat(String(raw));
       if (!Number.isNaN(n)) out[key] = n;
     } else {

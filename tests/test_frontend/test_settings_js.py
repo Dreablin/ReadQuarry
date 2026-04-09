@@ -89,3 +89,8 @@ def test_settings_js_clear_models_cache_wiring(settings_js: str) -> None:
     assert "clearModelsCache" in settings_js
     assert "settings-clear-models-cache" in settings_js
     assert "Delete downloaded embedding models" in settings_js
+
+
+def test_settings_js_search_score_threshold_field(settings_js: str) -> None:
+    """B03: Embeddings tab includes search score threshold in form keys."""
+    assert "search_score_threshold" in settings_js

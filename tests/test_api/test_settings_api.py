@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -177,6 +178,39 @@ def test_settings_api_rejects_non_positive_semantic_top_k() -> None:
 def test_settings_api_rejects_malformed_ollama_url() -> None:
     response = client.put("/api/settings", json={"ollama_base_url": "not-a-url"})
     assert response.status_code == 422
+
+
+def test_settings_api_search_score_threshold_default_and_persistence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B03: search_score_threshold defaults to 0.6 and persists in settings.json."""
+    monkeypatch.setattr(settings_module, "app_config", SimpleNamespace(data_dir=tmp_path))
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+
+    c = TestClient(app)
+    r = c.get("/api/settings")
+    assert r.status_code == 200
+    assert r.json()["search_score_threshold"] == 0.6
+
+    r2 = c.put("/api/settings", json={"search_score_threshold": 0.45})
+    assert r2.status_code == 200
+    assert r2.json()["search_score_threshold"] == 0.45
+
+    path = tmp_path / "settings.json"
+    assert path.is_file()
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    assert on_disk["search_score_threshold"] == 0.45
+
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+    settings_module._merge_file_into_settings()
+    assert c.get("/api/settings").json()["search_score_threshold"] == 0.45
+
+
+def test_settings_api_rejects_search_score_threshold_out_of_range() -> None:
+    r = client.put("/api/settings", json={"search_score_threshold": 1.5})
+    assert r.status_code == 422
 
 
 def test_settings_api_delete_models_cache_removes_directory(

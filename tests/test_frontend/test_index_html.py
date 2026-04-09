@@ -137,6 +137,13 @@ def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     assert "role=\"tabpanel\"" in index_html
 
 
+def test_index_html_settings_search_score_threshold(index_html: str) -> None:
+    """B03: Embeddings tab exposes search score threshold control."""
+    assert 'id="settings-search_score_threshold"' in index_html
+    assert "Search score threshold" in index_html
+    assert 'name="search_score_threshold"' in index_html
+
+
 def test_index_html_settings_cloud_storage_warning(index_html: str) -> None:
     """B08: Cloud LLM group includes local settings file security notice."""
     assert "settings-cloud-security-warning" in index_html
