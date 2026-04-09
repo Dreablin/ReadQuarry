@@ -61,6 +61,17 @@ def _with_hf_hub_offline(fn: Callable[[], _T]) -> _T:
             os.environ["HF_HUB_OFFLINE"] = previous
 
 
+def _with_transformers_load_report_suppressed(fn: Callable[[], _T]) -> _T:
+    """Suppress noisy transformers load-report logs for model init only."""
+    modeling_logger = logging.getLogger("transformers.modeling_utils")
+    previous_level = modeling_logger.level
+    modeling_logger.setLevel(logging.ERROR)
+    try:
+        return fn()
+    finally:
+        modeling_logger.setLevel(previous_level)
+
+
 class EmbeddingService:
     """Compute text embeddings via ``sentence_transformers``.
 
@@ -109,17 +120,20 @@ class EmbeddingService:
                 kwargs["local_files_only"] = True
             return SentenceTransformer(self.model_name, **kwargs)
 
+        def _instantiate_with_logging_suppressed(*, offline: bool) -> object:
+            return _with_transformers_load_report_suppressed(lambda: _instantiate(offline=offline))
+
         if self._allow_fallback:
             try:
                 if local_only:
-                    return _with_hf_hub_offline(lambda: _instantiate(offline=True))
-                return _instantiate(offline=False)
+                    return _with_hf_hub_offline(lambda: _instantiate_with_logging_suppressed(offline=True))
+                return _instantiate_with_logging_suppressed(offline=False)
             except Exception:
                 return None
 
         if local_only:
-            return _with_hf_hub_offline(lambda: _instantiate(offline=True))
-        return _instantiate(offline=False)
+            return _with_hf_hub_offline(lambda: _instantiate_with_logging_suppressed(offline=True))
+        return _instantiate_with_logging_suppressed(offline=False)
 
     def _fallback_embed(self, text: str) -> list[float]:
         seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16) % (2**32)

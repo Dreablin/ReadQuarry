@@ -1,4 +1,5 @@
 import builtins
+import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,6 +9,60 @@ import pytest
 
 import src.core.embeddings as embeddings_module
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
+
+
+def test_embedding_service_temporarily_suppresses_transformers_modeling_utils_logger(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B09: model load suppresses modeling_utils noise only during instantiation."""
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    target_logger = logging.getLogger("transformers.modeling_utils")
+    prev_level = logging.INFO
+    target_logger.setLevel(prev_level)
+    captured: dict[str, int] = {}
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        captured["during_level"] = target_logger.level
+        mock = MagicMock()
+        mock.encode = lambda x: [[0.1] * 384] if isinstance(x, list) else [0.1] * 384
+        return mock
+
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    _ = EmbeddingService()
+    assert captured["during_level"] >= logging.ERROR
+    assert target_logger.level == prev_level
+
+
+def test_embedding_service_restores_transformers_logger_even_on_load_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """B09: logger level restoration happens even if model load raises."""
+    monkeypatch.setattr(embeddings_module, "settings", SimpleNamespace(data_dir=tmp_path))
+    target_logger = logging.getLogger("transformers.modeling_utils")
+    prev_level = logging.WARNING
+    target_logger.setLevel(prev_level)
+
+    def fake_st(
+        model_name: str,
+        *,
+        device: str = "cpu",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
+        **kwargs: object,
+    ) -> MagicMock:
+        raise RuntimeError("load failed")
+
+    monkeypatch.setattr("sentence_transformers.SentenceTransformer", fake_st)
+    with pytest.raises(RuntimeError):
+        _ = EmbeddingService()
+    assert target_logger.level == prev_level
 
 
 def test_embedding_service_uses_local_files_only_when_cache_has_model_files(
