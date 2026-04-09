@@ -144,53 +144,37 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     messages.append({"role": "user", "content": user_block})
 
     llm = LLMClient(dict(app_settings))
-    assistant_parts: list[str] = []
+
+    total_ctx_len = sum(len(m.get("content", "")) for m in messages)
+    logger.info(
+        "LLM request session_id=%s messages=%d context_chars=%d",
+        session_id, len(messages), total_ctx_len,
+    )
 
     try:
-        stream = llm.chat_completion(messages, stream=True)
-        for chunk in stream:
-            if not chunk.choices:
-                logger.debug("LLM stream chunk without choices session_id=%s", session_id)
-                continue
-            delta = chunk.choices[0].delta
-            if delta is None:
-                logger.debug("LLM stream chunk missing delta session_id=%s", session_id)
-                continue
-            piece = getattr(delta, "content", None) or ""
-            logger.debug(
-                "LLM stream delta session_id=%s piece_len=%d piece_preview=%r",
-                session_id,
-                len(piece),
-                piece[:200] if isinstance(piece, str) else piece,
-            )
-            if not piece:
-                continue
-            assistant_parts.append(piece)
-            # Stream only when there is visible text so far (avoids silent all-whitespace UIs).
-            if "".join(assistant_parts).strip():
-                yield _sse_payload({"type": "delta", "content": piece})
-            else:
-                logger.debug(
-                    "LLM stream only whitespace accumulated so far session_id=%s",
-                    session_id,
-                )
+        response = llm.chat_completion(messages, stream=False)
+        content = ""
+        if response.choices:
+            msg = response.choices[0].message
+            if msg is not None:
+                content = msg.content or ""
 
-        assistant_joined = "".join(assistant_parts)
-        if not assistant_joined.strip():
-            logger.warning(
-                "LLM returned no visible text (empty or whitespace-only) session_id=%s",
-                session_id,
+        if not content.strip():
+            logger.warning("LLM returned empty response session_id=%s", session_id)
+            content = "[Empty block returned from LLM]"
+        else:
+            logger.info(
+                "LLM response session_id=%s chars=%d",
+                session_id, len(content),
             )
-            placeholder = "[Empty block returned from LLM]"
-            assistant_parts.clear()
-            assistant_parts.append(placeholder)
-            yield _sse_payload({"type": "delta", "content": placeholder})
+
+        yield _sse_payload({"type": "delta", "content": content})
     except Exception as exc:
-        logger.exception("LLM streaming failed for session_id=%s", session_id)
+        logger.exception("LLM request failed for session_id=%s", session_id)
         yield _sse_payload({"type": "error", "message": str(exc)})
         return
 
-    assistant_text = "".join(assistant_parts)
+    assistant_text = content
     ref_json = json.dumps(ref_chunk_ids) if ref_chunk_ids else None
     assistant_row = ChatMessage(
         session_id=session_id,

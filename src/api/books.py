@@ -17,6 +17,7 @@ from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 from src.db.database import get_db
 from src.models.book import Book
+from src.models.chunk import Chunk
 from src.parsers import EpubParser, ParserRegistry
 
 logger = logging.getLogger(__name__)
@@ -159,6 +160,28 @@ def delete_all_books(db: Session = Depends(get_db)) -> dict:
         db.commit()
     logger.info("Cleared all books: count=%d", count)
     return {"status": "cleared", "deleted_count": count}
+
+
+@router.get("/{book_id}/chunks")
+def get_book_chunks(book_id: int, db: Session = Depends(get_db)) -> list[dict]:
+    """Return all chunks for a book, ordered by chunk index."""
+    book = db.get(Book, book_id)
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    chunks = db.scalars(
+        select(Chunk).where(Chunk.book_id == book_id).order_by(Chunk.chunk_index)
+    ).all()
+    return [
+        {
+            "id": c.id,
+            "book_id": c.book_id,
+            "chapter_title": c.chapter_title,
+            "chunk_index": c.chunk_index,
+            "strategy": c.strategy,
+            "text": c.text,
+        }
+        for c in chunks
+    ]
 
 
 @router.get("/{book_id}")
