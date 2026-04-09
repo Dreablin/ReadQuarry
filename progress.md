@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 8 — Bug Fixes (Round 3)
-**Next Task**: None (B01 remains blocked `[!]`)
-**Last Completed**: B09
-**Total Progress**: 8 / 9 tasks
+**Next Task**: None
+**Last Completed**: B01
+**Total Progress**: 9 / 9 tasks
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### Phase 8: Bug Fixes (Round 3)
 
-- [!] **B01**: Fix log viewer — only update DOM when new log entries arrive, not on every poll — see BUGS.md B01 *(implementation/tests done; full-suite gate blocked by unrelated pre-existing chat/LLM/e2e failures after 3+ attempts)*
+- [x] **B01**: Fix log viewer — only update DOM when new log entries arrive, not on every poll — see BUGS.md B01
 - [x] **B02**: Fix Ollama empty responses — add raw response debug logging, fix content extraction — see BUGS.md B02
 - [x] **B03**: Add `search_score_threshold` setting to backend defaults and frontend Embeddings & Search UI — see BUGS.md B03
 - [x] **B04**: Apply `search_score_threshold` filtering in search endpoints and hybrid merge — see BUGS.md B04 (depends on B03)
@@ -41,6 +41,7 @@
 | 2026-04-09 | B07 | `tests/test_integration/test_ollama_integration.py` with `@pytest.mark.integration`, module skip when Ollama unreachable, model pick from `/api/ps` ∩ `/api/tags`; `pytest.ini` registers `integration` marker; Ollama `/api/chat` no longer sends `options.num_predict` (some thinking models return empty `message.content` when set) | BUGS.md B07 |
 | 2026-04-09 | B08 | `_embedding_model_files_present` checks `sentence-transformers/{model}`, `{model}`, and `models--sentence-transformers--{model}` (HF Hub layout); cache hit → `SentenceTransformer(..., local_files_only=True)` inside `_with_hf_hub_offline`; `sentence_transformers` import stays inside `_instantiate` so `allow_fallback` still catches `ImportError` | BUGS.md B08 |
 | 2026-04-09 | B09 | Added `_with_transformers_load_report_suppressed` to set `transformers.modeling_utils` logger to `ERROR` only during `SentenceTransformer(...)` construction and always restore previous level; tests assert suppression-in-scope and restoration on both success and exception | BUGS.md B09 |
+| 2026-04-09 | B01 | `GET /api/logs` `count` is monotonic `_LOG_APPEND_SEQ` (increments on each append) so it still changes when the ring buffer is full; frontend `lastCount` + skip unchanged DOM already in `log-viewer.js`; API tests cover seq vs buffer length | BUGS.md B01 |
 
 ---
 
@@ -48,7 +49,7 @@
 
 | Date | Task | Issue | Status |
 |------|------|-------|--------|
-| 2026-04-09 | B01 | Full suite gate failed after B01 changes due unrelated existing regressions in chat/LLM area (`test_chat_api`, `test_llm_client`, `test_e2e_smoke_flow`); B01-targeted tests pass | Open |
+| 2026-04-09 | — | No open blockers | — |
 
 ---
 

@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/logs", tags=["logs"])
 
 _LOG_LOCK = Lock()
 _LOG_BUFFER: deque[dict[str, Any]] = deque(maxlen=500)
+_LOG_APPEND_SEQ: int = 0
 _HANDLER: logging.Handler | None = None
 
 
@@ -29,7 +30,9 @@ class RingBufferHandler(logging.Handler):
                 "logger": record.name,
                 "message": msg,
             }
+            global _LOG_APPEND_SEQ
             with _LOG_LOCK:
+                _LOG_APPEND_SEQ += 1
                 _LOG_BUFFER.append(entry)
         except Exception:
             self.handleError(record)
@@ -54,6 +57,12 @@ def install_memory_log_handler() -> None:
 
 @router.get("")
 def get_logs() -> dict[str, Any]:
-    """Return recent log entries from the in-memory ring buffer (newest last)."""
+    """Return recent log entries from the in-memory ring buffer (newest last).
+
+    ``count`` is the total number of log lines appended (monotonic). It may exceed
+    ``len(entries)`` when the ring buffer drops older rows, so clients can detect
+    new output without comparing full entry lists (BUGS.md B01).
+    """
     with _LOG_LOCK:
-        return {"entries": list(_LOG_BUFFER)}
+        entries = list(_LOG_BUFFER)
+        return {"entries": entries, "count": _LOG_APPEND_SEQ}
