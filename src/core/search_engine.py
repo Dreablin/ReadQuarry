@@ -53,7 +53,10 @@ class SearchEngine:
         self._persist()
 
     def search(self, query: str, max_results: int = 5) -> list[dict]:
-        """Match using Unicode casefolding and word tokens (Latin, Cyrillic, etc.)."""
+        """Match using Unicode casefolding and word tokens (Latin, Cyrillic, etc.).
+
+        Each result dict includes ``score`` (higher is stronger) for hybrid merge ranking.
+        """
         raw = query.strip()
         if not raw:
             return []
@@ -62,7 +65,16 @@ class SearchEngine:
         phrase_match = re.fullmatch(r'"(.+)"', q_fold)
         if phrase_match:
             phrase = phrase_match.group(1).strip()
-            matched = [doc for doc in self._documents if phrase in doc["text"].casefold()]
+            if not phrase:
+                return []
+            phrase_cf = phrase.casefold()
+            matched: list[dict] = []
+            for doc in self._documents:
+                text_cf = doc["text"].casefold()
+                if phrase_cf not in text_cf:
+                    continue
+                occ = max(1, text_cf.count(phrase_cf))
+                matched.append({**doc, "score": float(occ)})
             return matched[:max_results]
 
         terms = re.findall(r"\w+", q_fold, flags=re.UNICODE)
@@ -76,7 +88,7 @@ class SearchEngine:
             if score > 0:
                 scored.append((score, doc))
         scored.sort(key=lambda item: item[0], reverse=True)
-        return [doc for _, doc in scored[:max_results]]
+        return [{**doc, "score": float(score)} for score, doc in scored[:max_results]]
 
     def delete_index(self) -> None:
         self._documents = []

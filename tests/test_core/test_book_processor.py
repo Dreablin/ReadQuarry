@@ -2,9 +2,27 @@ import logging
 from pathlib import Path
 
 import pytest
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.core.book_processor import BookProcessor
+from src.db.database import Base
+from src.models.book import Book
+from src.models.chunk import Chunk
 from src.parsers.base import ParsedBook, ParsedChapter
+
+
+def _memory_session() -> Session:
+    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
+
+    @event.listens_for(engine, "connect")
+    def _enable_foreign_keys(dbapi_connection, _connection_record):  # type: ignore[no-untyped-def]
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine, future=True)()
 
 
 class DummyParser:
@@ -117,6 +135,48 @@ def test_book_processor_integration_with_real_services(tmp_path) -> None:
     result = processor.process_book(file_path="integration.epub", book_id=77, chunking_strategy="paragraph")
     assert result["book_title"] == "Integration Book"
     assert result["total_chunks"] >= 3
+
+
+def test_book_processor_persists_chunks_to_sqlite_when_db_provided() -> None:
+    """B03: Chunk rows must exist in SQLite for RAG; Chroma ids match Chunk.id."""
+    db = _memory_session()
+    book = Book(
+        title="Demo",
+        author="Author",
+        file_name="book.epub",
+        file_hash="hash-b03-test",
+        chunking_strategy="paragraph",
+        total_paragraphs=None,
+        total_chunks=None,
+    )
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    result = processor.process_book(
+        file_path="book.epub",
+        book_id=book.id,
+        chunking_strategy="paragraph",
+        db=db,
+    )
+    db.commit()
+
+    assert result["total_chunks"] >= 1
+    assert db.query(Chunk).filter(Chunk.book_id == book.id).count() == result["total_chunks"]
+    rows = db.query(Chunk).filter(Chunk.book_id == book.id).order_by(Chunk.id.asc()).all()
+    assert vector_store.added is not None
+    assert vector_store.added["ids"] == [str(r.id) for r in rows]
+    for r in rows:
+        assert r.text
+        assert r.strategy == "paragraph"
 
 
 def test_book_processor_skips_storage_when_no_chunks() -> None:

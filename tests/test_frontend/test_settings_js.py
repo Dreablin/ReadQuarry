@@ -24,6 +24,7 @@ def test_settings_js_imports_api(settings_js: str) -> None:
     assert "updateSettings" in settings_js
     assert "resetSettings" in settings_js
     assert "testLlm" in settings_js
+    assert "clearModelsCache" in settings_js
 
 
 def test_settings_js_exports_init(settings_js: str) -> None:
@@ -81,3 +82,10 @@ def test_settings_js_clear_all_data_wiring(settings_js: str) -> None:
     assert "clearAllBooks" in settings_js
     assert "Delete all books and conversations" in settings_js
     assert "settings-clear-all" in settings_js
+
+
+def test_settings_js_clear_models_cache_wiring(settings_js: str) -> None:
+    """B08: Clear models cache uses API and confirm before deleting data/models."""
+    assert "clearModelsCache" in settings_js
+    assert "settings-clear-models-cache" in settings_js
+    assert "Delete downloaded embedding models" in settings_js

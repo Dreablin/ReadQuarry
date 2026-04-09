@@ -171,6 +171,12 @@ export async function testLlm() {
   return _jsonOrThrow(res);
 }
 
+/** @returns {Promise<unknown>} */
+export async function clearModelsCache() {
+  const res = await fetch("/api/settings/models_cache", { method: "DELETE" });
+  return _jsonOrThrow(res);
+}
+
 // ——— Logs (debug viewer) ———
 
 /** @returns {Promise<unknown>} */

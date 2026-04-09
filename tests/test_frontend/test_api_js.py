@@ -49,6 +49,13 @@ def test_api_js_settings_endpoints(api_js: str) -> None:
     assert "test-llm" in api_js
 
 
+def test_api_js_clear_models_cache(api_js: str) -> None:
+    """B08: DELETE /api/settings/models_cache clears downloaded embedding models."""
+    assert "clearModelsCache" in api_js
+    assert "/api/settings/models_cache" in api_js
+    assert "DELETE" in api_js
+
+
 def test_api_js_chat_endpoints(api_js: str) -> None:
     assert "/api/chat/sessions" in api_js
     assert "messages" in api_js
@@ -74,6 +81,7 @@ def test_api_js_exports_named_functions(api_js: str) -> None:
         "updateSettings",
         "resetSettings",
         "testLlm",
+        "clearModelsCache",
         "createChatSession",
         "listChatSessions",
         "getChatMessages",

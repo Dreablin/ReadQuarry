@@ -113,7 +113,7 @@ async def upload_book(
         ),
     )
     try:
-        result = processor.process_book(str(destination), book_id, chunking_strategy)
+        result = processor.process_book(str(destination), book_id, chunking_strategy, db=db)
         logger.info(
             "Upload pipeline succeeded book_id=%s total_chunks=%s title=%r",
             book_id,

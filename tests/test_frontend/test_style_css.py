@@ -79,6 +79,11 @@ def test_style_css_settings_clear_all_danger_zone(style_css: str) -> None:
     assert ".btn-danger" in style_css
 
 
+def test_style_css_settings_models_cache_hint(style_css: str) -> None:
+    """B08: Embeddings tab hint for models cache location and clear button."""
+    assert ".settings-models-cache__hint" in style_css
+
+
 def test_style_css_dialog_action_buttons_themed(style_css: str) -> None:
     """B15: dialog action buttons must be explicitly themed for dark UI contrast."""
     assert ".dialog__actions button" in style_css
@@ -148,3 +153,9 @@ def test_style_css_covers_shell_layout_classes(style_css: str) -> None:
 def test_style_css_button_and_panel_hover_or_transitions(style_css: str) -> None:
     lower = style_css.lower()
     assert "transition" in lower or "animation" in lower
+
+
+def test_style_css_search_form_max_results(style_css: str) -> None:
+    """B05: search panel max-results control is styled."""
+    assert ".search-form__max-results" in style_css
+    assert ".search-form__label" in style_css

@@ -25,6 +25,15 @@ def test_epub_parser_exposes_clean_html_helper() -> None:
     assert "<h1>" not in cleaned
 
 
+def test_epub_parser_clean_html_preserves_paragraph_breaks_for_chunking() -> None:
+    """B06: block boundaries must survive as blank-line gaps for ParagraphChunking."""
+    parser = EpubParser()
+    cleaned = parser.clean_html("<p>First paragraph.</p><p>Second paragraph.</p>")
+    assert "First paragraph." in cleaned
+    assert "Second paragraph." in cleaned
+    assert "\n\n" in cleaned
+
+
 def test_epub_parser_parse_raises_for_missing_file() -> None:
     parser = EpubParser()
     try:

@@ -31,3 +31,8 @@ python -m pip install -r requirements.txt
 echo Starting ReadQuarry at http://127.0.0.1:8000/
 start "" "http://127.0.0.1:8000/"
 python main.py
+if errorlevel 1 (
+  echo.
+  echo Server exited with error. Check the output above.
+  pause
+)

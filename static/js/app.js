@@ -79,6 +79,7 @@ function wireMainViews(bookList, refs, setStatus, logViewer) {
   const mainEl = document.getElementById("app-main");
   const form = document.getElementById("search-form");
   const queryInput = document.getElementById("search-query");
+  const maxResultsInput = document.getElementById("search-max-results");
   const resultsEl = document.getElementById("search-results");
 
   /**
@@ -128,7 +129,18 @@ function wireMainViews(bookList, refs, setStatus, logViewer) {
     setStatus("Searching…");
     if (resultsEl) resultsEl.innerHTML = "";
     try {
-      const data = await searchHybrid({ book_id: bookId, query: q });
+      const rawLimit =
+        maxResultsInput && maxResultsInput.value != null && String(maxResultsInput.value).trim() !== ""
+          ? parseInt(String(maxResultsInput.value), 10)
+          : 20;
+      const limit = Number.isFinite(rawLimit) ? Math.min(50, Math.max(1, rawLimit)) : 20;
+      const data = await searchHybrid({
+        book_id: bookId,
+        query: q,
+        semantic_k: limit,
+        exact_k: limit,
+        final_n: limit,
+      });
       const rows = Array.isArray(data?.results) ? data.results : [];
       refs.setHighlightQuery(q);
       if (resultsEl) {

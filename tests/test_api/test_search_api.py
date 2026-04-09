@@ -121,3 +121,22 @@ def test_search_api_hybrid_respects_final_n() -> None:
 def test_search_api_rejects_non_positive_limits() -> None:
     response = client.post("/api/search/exact", json={"book_id": 1, "query": "rabbit", "max_results": 0})
     assert response.status_code == 422
+
+
+def test_search_api_hybrid_rejects_final_n_over_50() -> None:
+    """B05: cap hybrid limits so clients cannot request unbounded merges."""
+    response = client.post(
+        "/api/search/hybrid",
+        json={"book_id": 1, "query": "rabbit", "semantic_k": 5, "exact_k": 5, "final_n": 51},
+    )
+    assert response.status_code == 422
+
+
+def test_search_api_hybrid_accepts_final_n_50() -> None:
+    """B05: allow up to 50 merged results."""
+    response = client.post(
+        "/api/search/hybrid",
+        json={"book_id": 1, "query": "rabbit", "semantic_k": 50, "exact_k": 50, "final_n": 50},
+    )
+    assert response.status_code == 200
+    assert "results" in response.json()

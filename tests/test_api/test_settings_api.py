@@ -177,3 +177,32 @@ def test_settings_api_rejects_non_positive_semantic_top_k() -> None:
 def test_settings_api_rejects_malformed_ollama_url() -> None:
     response = client.put("/api/settings", json={"ollama_base_url": "not-a-url"})
     assert response.status_code == 422
+
+
+def test_settings_api_delete_models_cache_removes_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B08: DELETE /api/settings/models_cache removes the embedding models folder."""
+    monkeypatch.setattr(settings_module, "app_config", SimpleNamespace(data_dir=tmp_path))
+    models_dir = tmp_path / "models"
+    models_dir.mkdir(parents=True)
+    (models_dir / "dummy.txt").write_text("x", encoding="utf-8")
+
+    c = TestClient(app)
+    r = c.delete("/api/settings/models_cache")
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("status") == "cleared"
+    assert str(models_dir) in body.get("path", "")
+    assert not models_dir.exists()
+
+
+def test_settings_api_delete_models_cache_ok_when_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B08: deleting a missing cache is idempotent."""
+    monkeypatch.setattr(settings_module, "app_config", SimpleNamespace(data_dir=tmp_path))
+    c = TestClient(app)
+    r = c.delete("/api/settings/models_cache")
+    assert r.status_code == 200
+    assert r.json().get("status") == "cleared"

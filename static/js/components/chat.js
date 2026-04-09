@@ -29,8 +29,8 @@ async function consumeSseJson(response, onEvent) {
           try {
             const data = JSON.parse(line.slice(6));
             onEvent(data);
-          } catch {
-            /* ignore malformed chunk */
+          } catch (err) {
+            console.warn("chat SSE: failed to parse JSON event", line, err);
           }
         }
       }
@@ -152,7 +152,7 @@ export async function initChat(options) {
       messagesEl.appendChild(assistantWrap);
 
       await consumeSseJson(response, (ev) => {
-        if (ev.type === "delta" && ev.content) {
+        if (ev.type === "delta" && typeof ev.content === "string") {
           body.textContent += ev.content;
           messagesEl.scrollTop = messagesEl.scrollHeight;
         } else if (ev.type === "error") {

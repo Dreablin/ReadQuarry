@@ -150,14 +150,41 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
         stream = llm.chat_completion(messages, stream=True)
         for chunk in stream:
             if not chunk.choices:
+                logger.debug("LLM stream chunk without choices session_id=%s", session_id)
                 continue
             delta = chunk.choices[0].delta
             if delta is None:
+                logger.debug("LLM stream chunk missing delta session_id=%s", session_id)
                 continue
             piece = getattr(delta, "content", None) or ""
-            if piece:
-                assistant_parts.append(piece)
+            logger.debug(
+                "LLM stream delta session_id=%s piece_len=%d piece_preview=%r",
+                session_id,
+                len(piece),
+                piece[:200] if isinstance(piece, str) else piece,
+            )
+            if not piece:
+                continue
+            assistant_parts.append(piece)
+            # Stream only when there is visible text so far (avoids silent all-whitespace UIs).
+            if "".join(assistant_parts).strip():
                 yield _sse_payload({"type": "delta", "content": piece})
+            else:
+                logger.debug(
+                    "LLM stream only whitespace accumulated so far session_id=%s",
+                    session_id,
+                )
+
+        assistant_joined = "".join(assistant_parts)
+        if not assistant_joined.strip():
+            logger.warning(
+                "LLM returned no visible text (empty or whitespace-only) session_id=%s",
+                session_id,
+            )
+            placeholder = "[Empty block returned from LLM]"
+            assistant_parts.clear()
+            assistant_parts.append(placeholder)
+            yield _sse_payload({"type": "delta", "content": placeholder})
     except Exception as exc:
         logger.exception("LLM streaming failed for session_id=%s", session_id)
         yield _sse_payload({"type": "error", "message": str(exc)})

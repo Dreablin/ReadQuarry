@@ -2,7 +2,14 @@
  * Settings modal: load/save app settings via `/api/settings`.
  */
 
-import { clearAllBooks, getSettings, resetSettings, testLlm, updateSettings } from "../api.js";
+import {
+  clearAllBooks,
+  clearModelsCache,
+  getSettings,
+  resetSettings,
+  testLlm,
+  updateSettings,
+} from "../api.js";
 
 /** @type {readonly string[]} */
 const FIELD_KEYS = [
@@ -211,6 +218,23 @@ export function initSettings(options = {}) {
         setFeedback("Defaults restored.");
       } catch (e) {
         setFeedback(e instanceof Error ? e.message : "Reset failed");
+      }
+    });
+  }
+
+  const clearModelsBtn = document.getElementById("settings-clear-models-cache");
+  if (clearModelsBtn) {
+    clearModelsBtn.addEventListener("click", async () => {
+      const ok = window.confirm(
+        "Delete downloaded embedding models from disk? They will re-download when needed.",
+      );
+      if (!ok) return;
+      setFeedback("Clearing model cache…");
+      try {
+        await clearModelsCache();
+        setFeedback("Models cache cleared.", "ok");
+      } catch (e) {
+        setFeedback(e instanceof Error ? e.message : "Clear failed", "error");
       }
     });
   }
