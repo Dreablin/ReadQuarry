@@ -154,13 +154,37 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     try:
         response = llm.chat_completion(messages, stream=False)
         content = ""
-        if response.choices:
-            msg = response.choices[0].message
-            if msg is not None:
-                content = msg.content or ""
+        raw_len = 0
+        model_name = str(app_settings.get("ollama_model_id") or app_settings.get("model_id") or "")
+        if hasattr(response, "choices"):
+            if response.choices:
+                msg = response.choices[0].message
+                if msg is not None:
+                    content = msg.content or ""
+            raw_len = len(content)
+        else:
+            # Backward compatibility with stream-like iterables used in tests.
+            chunks: list[str] = []
+            for chunk in response:
+                piece = ""
+                try:
+                    if chunk.choices:
+                        delta = chunk.choices[0].delta
+                        piece = (delta.content or "") if delta is not None else ""
+                except Exception:
+                    piece = ""
+                if piece:
+                    chunks.append(piece)
+            content = "".join(chunks)
+            raw_len = len(content)
 
         if not content.strip():
-            logger.warning("LLM returned empty response session_id=%s", session_id)
+            logger.warning(
+                "LLM returned empty response session_id=%s model=%s raw_len=%d",
+                session_id,
+                model_name,
+                raw_len,
+            )
             content = "[Empty block returned from LLM]"
         else:
             logger.info(

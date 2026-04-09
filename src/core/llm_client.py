@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -97,8 +98,12 @@ class LLMClient:
         temperature: float = 0.3,
     ) -> _OllamaResponse:
         """Call Ollama's native ``/api/chat`` endpoint."""
+        model_name = str(model or self._default_model)
+        logger.info("Ollama request model=%s", model_name)
+        self._validate_ollama_model_exists(model_name)
+
         payload: dict[str, Any] = {
-            "model": model or self._default_model,
+            "model": model_name,
             "messages": messages,
             "stream": False,
             "options": {
@@ -108,16 +113,51 @@ class LLMClient:
         }
         timeout = self._timeout or 120.0
         url = f"{self._ollama_base}/api/chat"
-        logger.info("Ollama request url=%s model=%s", url, payload["model"])
+        logger.info("Ollama request url=%s model=%s", url, model_name)
 
         resp = httpx.post(url, json=payload, timeout=timeout)
         resp.raise_for_status()
+        logger.debug("Ollama response status=%s", resp.status_code)
         data = resp.json()
+        logger.debug("Ollama raw response body: %s", json.dumps(data, ensure_ascii=False)[:2000])
 
         content = ""
         msg = data.get("message")
         if isinstance(msg, dict):
-            content = msg.get("content", "")
+            content = str(msg.get("content", "") or "")
+            if content:
+                logger.debug("Ollama content extracted from message.content")
+        if not content:
+            fallback = data.get("response")
+            if isinstance(fallback, str) and fallback:
+                content = fallback
+                logger.debug("Ollama content extracted from response fallback")
 
         logger.info("Ollama response chars=%d", len(content))
         return _OllamaResponse(content=content)
+
+    def _validate_ollama_model_exists(self, model_name: str) -> None:
+        """Best-effort model availability check for clearer errors."""
+        timeout = min(float(self._timeout or 120.0), 10.0)
+        tags_url = f"{self._ollama_base}/api/tags"
+        try:
+            resp = httpx.get(tags_url, timeout=timeout)
+            resp.raise_for_status()
+            payload = resp.json()
+        except Exception as exc:
+            logger.warning("Could not validate Ollama model via %s: %s", tags_url, exc)
+            return
+
+        models = payload.get("models")
+        if not isinstance(models, list):
+            return
+        names = {
+            str(item.get("name"))
+            for item in models
+            if isinstance(item, dict) and item.get("name")
+        }
+        if names and model_name not in names:
+            available = ", ".join(sorted(names))
+            raise RuntimeError(
+                f"Model '{model_name}' is not available in Ollama. Available models: {available}"
+            )
