@@ -1,8 +1,39 @@
 import re
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
+
+_EXTRACT_BLOCK_TAGS: frozenset[str] = frozenset(
+    {
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "blockquote",
+        "dd",
+        "dt",
+        "figcaption",
+        "td",
+        "th",
+        "pre",
+        "div",
+    }
+)
+
+
+def _has_inner_extractable_block(element: Tag) -> bool:
+    """True if ``element`` contains another tag we extract (avoids double-counting)."""
+    for node in element.descendants:
+        if node is element:
+            continue
+        if isinstance(node, Tag) and node.name in _EXTRACT_BLOCK_TAGS:
+            return True
+    return False
 
 from src.parsers.base import BaseParser, ParsedBook, ParsedChapter
 
@@ -17,13 +48,19 @@ class EpubParser(BaseParser):
     def clean_html(self, html: str) -> str:
         """Strip tags while keeping paragraph-sized breaks for chunking strategies.
 
-        Pull text from block-level tags (``p``, headings, ``li``) so inline markup
-        like ``<b>`` does not insert fake paragraph breaks. If none match, fall
-        back to full-document extraction with double-newline separators.
+        Pull text from block-level tags (paragraphs, headings, list items, tables,
+        quotes, leaf ``div`` wrappers used by some EPUBs, etc.). Only **leaf**
+        extractable nodes are kept (no inner extractable descendant), so a
+        ``<p>`` inside ``<blockquote>`` is emitted once. If nothing matches, fall
+        back to full-document extraction with double-newline separators (BUGS.md B04).
         """
         soup = BeautifulSoup(html, "html.parser")
         blocks: list[str] = []
-        for tag in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]):
+        for tag in soup.find_all(list(_EXTRACT_BLOCK_TAGS)):
+            if not isinstance(tag, Tag):
+                continue
+            if _has_inner_extractable_block(tag):
+                continue
             piece = " ".join(tag.get_text(separator=" ", strip=True).split())
             if piece:
                 blocks.append(piece)

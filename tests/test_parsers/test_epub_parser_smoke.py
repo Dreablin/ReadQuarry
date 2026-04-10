@@ -34,6 +34,54 @@ def test_epub_parser_clean_html_preserves_paragraph_breaks_for_chunking() -> Non
     assert "\n\n" in cleaned
 
 
+def test_epub_parser_clean_html_b04_includes_leaf_div_paragraphs_when_p_exists() -> None:
+    """B04: must not return early on first <p> and drop sibling <div> body text."""
+    parser = EpubParser()
+    html = (
+        '<p>Footer note.</p>'
+        '<div class="para">First div block.</div>'
+        '<div class="para">Second div block.</div>'
+    )
+    cleaned = parser.clean_html(html)
+    parts = [p.strip() for p in cleaned.split("\n\n") if p.strip()]
+    assert len(parts) == 3
+    assert "Footer note." in cleaned
+    assert "First div block." in cleaned
+    assert "Second div block." in cleaned
+
+
+def test_epub_parser_clean_html_b04_blockquote_inner_p_not_duplicated() -> None:
+    """B04: <blockquote><p>…</p></blockquote> yields one block, not two."""
+    parser = EpubParser()
+    cleaned = parser.clean_html("<blockquote><p>Single quoted line.</p></blockquote>")
+    assert cleaned.count("Single quoted line.") == 1
+    parts = [p.strip() for p in cleaned.split("\n\n") if p.strip()]
+    assert len(parts) == 1
+
+
+def test_epub_parser_clean_html_b04_blockquote_plain_text() -> None:
+    """B04: blockquote without inner block tags still extracts."""
+    parser = EpubParser()
+    cleaned = parser.clean_html("<blockquote>Bare quote.</blockquote>")
+    assert "Bare quote." in cleaned
+
+
+def test_epub_parser_clean_html_b04_expanded_block_tags() -> None:
+    """B04: blockquote, pre, td, figcaption appear as separate blocks."""
+    parser = EpubParser()
+    html = (
+        "<blockquote>Q</blockquote>"
+        "<pre>code line</pre>"
+        "<table><tr><td>cell</td></tr></table>"
+        "<figure><figcaption>Cap</figcaption></figure>"
+    )
+    cleaned = parser.clean_html(html)
+    assert "Q" in cleaned
+    assert "code line" in cleaned
+    assert "cell" in cleaned
+    assert "Cap" in cleaned
+
+
 def test_epub_parser_parse_raises_for_missing_file() -> None:
     parser = EpubParser()
     try:
