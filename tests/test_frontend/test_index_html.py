@@ -107,6 +107,11 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-progress" in index_html
 
 
+def test_index_html_upload_b01_fe_stage_line(index_html: str) -> None:
+    """B01-FE: visible line for ingestion stage / detail text during upload."""
+    assert 'id="upload-stage"' in index_html
+
+
 def test_index_html_upload_fixed_size_chunk_options(index_html: str) -> None:
     """B06: conditional fixed-size chunk size and overlap fields."""
     assert 'id="upload-fixed-size-options"' in index_html

@@ -37,15 +37,81 @@ async function _jsonOrThrow(res) {
   return data;
 }
 
+/**
+ * Read B01 upload SSE (`text/event-stream`) until `done` or `error`.
+ *
+ * @param {Response} res
+ * @param {(e: { stage: string, progress: number, detail?: string }) => void} [onProgress]
+ * @returns {Promise<unknown>}
+ */
+async function _consumeBookUploadSse(res, onProgress) {
+  const ct = res.headers.get("content-type") || "";
+  if (!ct.includes("text/event-stream")) {
+    throw new Error("Expected upload response to be text/event-stream");
+  }
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("Upload response has no readable body");
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+  /** @type {unknown} */
+  let book = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n");
+    buffer = parts.pop() ?? "";
+    for (const rawLine of parts) {
+      const line = rawLine.trim();
+      if (!line.startsWith("data:")) continue;
+      const jsonText = line.startsWith("data: ") ? line.slice(6) : line.slice(5).trimStart();
+      if (!jsonText) continue;
+      let obj;
+      try {
+        obj = JSON.parse(jsonText);
+      } catch {
+        continue;
+      }
+      if (!obj || typeof obj !== "object") continue;
+      if (obj.stage === "error") {
+        const m = typeof obj.message === "string" ? obj.message : "Upload failed";
+        throw new Error(m);
+      }
+      if (obj.stage === "done") {
+        book = obj.book;
+        if (typeof onProgress === "function") {
+          onProgress({ stage: "done", progress: 100 });
+        }
+        continue;
+      }
+      if (typeof onProgress === "function" && typeof obj.progress === "number") {
+        onProgress({
+          stage: typeof obj.stage === "string" ? obj.stage : "",
+          progress: obj.progress,
+          detail: typeof obj.detail === "string" ? obj.detail : undefined,
+        });
+      }
+    }
+  }
+  if (book == null) {
+    throw new Error("Upload stream ended without a book payload");
+  }
+  return book;
+}
+
 // ——— Books ———
 
 /**
  * @param {File} file
  * @param {string} [chunkingStrategy]
  * @param {{ chunkSize?: number, overlapRatio?: number }} [extras] fixed-size upload options
+ * @param {{ onProgress?: (e: { stage: string, progress: number, detail?: string }) => void }} [streamOptions] B01 SSE progress
  * @returns {Promise<unknown>}
  */
-export async function uploadBook(file, chunkingStrategy = "paragraph", extras = {}) {
+export async function uploadBook(file, chunkingStrategy = "paragraph", extras = {}, streamOptions = {}) {
+  const onProgress = typeof streamOptions.onProgress === "function" ? streamOptions.onProgress : undefined;
   const body = new FormData();
   body.append("file", file);
   body.append("chunking_strategy", chunkingStrategy);
@@ -56,6 +122,13 @@ export async function uploadBook(file, chunkingStrategy = "paragraph", extras = 
     body.append("overlap_ratio", String(Number(extras.overlapRatio)));
   }
   const res = await fetch("/api/books/upload", { method: "POST", body });
+  const ct = res.headers.get("content-type") || "";
+  if (!res.ok) {
+    return _jsonOrThrow(res);
+  }
+  if (ct.includes("text/event-stream")) {
+    return _consumeBookUploadSse(res, onProgress);
+  }
   return _jsonOrThrow(res);
 }
 

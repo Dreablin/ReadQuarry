@@ -53,6 +53,14 @@ def test_book_upload_js_progress_bar(book_upload_js: str) -> None:
     assert "upload-progress" in book_upload_js or "aria-valuenow" in book_upload_js
 
 
+def test_book_upload_js_b01_fe_real_progress_no_fake_timer(book_upload_js: str) -> None:
+    """B01-FE: no fake random progress interval; wires SSE via uploadBook onProgress."""
+    assert "setInterval" not in book_upload_js
+    assert "Math.random" not in book_upload_js
+    assert "onProgress" in book_upload_js
+    assert "upload-stage" in book_upload_js
+
+
 def test_book_upload_js_dialog_and_file_input(book_upload_js: str) -> None:
     assert "upload-dialog" in book_upload_js
     assert "upload-file" in book_upload_js

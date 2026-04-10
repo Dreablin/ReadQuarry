@@ -827,6 +827,13 @@ dialog.dialog--settings {
   color: #f87171;
 }
 
+.upload-stage {
+  margin-top: var(--space-sm);
+  min-height: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.65));
+}
+
 .upload-progress {
   margin-top: var(--space-md);
   height: 0.5rem;

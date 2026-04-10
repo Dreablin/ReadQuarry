@@ -37,6 +37,16 @@ def test_api_js_upload_book_supports_fixed_size_form_fields(api_js: str) -> None
     assert "overlap_ratio" in api_js
 
 
+def test_api_js_b01_fe_upload_book_consumes_sse(api_js: str) -> None:
+    """B01-FE: uploadBook reads text/event-stream, parses data lines, supports onProgress."""
+    assert "text/event-stream" in api_js
+    assert "getReader" in api_js
+    assert "data:" in api_js or "data: " in api_js
+    assert "onProgress" in api_js
+    assert "stage" in api_js
+    assert "done" in api_js
+
+
 def test_api_js_clear_all_books(api_js: str) -> None:
     """B16: DELETE /api/books clears all books."""
     assert "clearAllBooks" in api_js

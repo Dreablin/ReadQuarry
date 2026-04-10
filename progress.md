@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 9 — Bug Fixes (Round 4)
-**Next Task**: B01-FE
-**Last Completed**: B01
-**Total Progress**: 8 / 10 tasks
+**Next Task**: B01-TEST
+**Last Completed**: B01-FE
+**Total Progress**: 9 / 10 tasks
 
 ---
 
@@ -25,7 +25,7 @@
 - [x] **B03a**: Backend: add `system_prompt` to settings defaults and wire into `_system_prompt()` — see BUGS.md B03a
 - [x] **B03b**: Frontend: add "Prompts" tab to settings dialog with system prompt textarea — see BUGS.md B03b (depends on B03a)
 - [x] **B01**: Real upload progress bar via SSE — replace fake animation with server-streamed progress events — see BUGS.md B01
-- [ ] **B01-FE**: Frontend: consume upload SSE stream and update progress bar with real stage data — see BUGS.md B01 (frontend part)
+- [x] **B01-FE**: Frontend: consume upload SSE stream and update progress bar with real stage data — see BUGS.md B01 (frontend part)
 - [ ] **B01-TEST**: Integration test for upload SSE progress events — see BUGS.md B01 (test part)
 
 ---
@@ -43,6 +43,7 @@
 | 2026-04-10 | B03a | `SYSTEM_PROMPT_DEFAULT` + `DEFAULTS["system_prompt"]`; `SettingsUpdate.system_prompt`; `_system_prompt(app_settings)` uses `get` + None guard; `_stream_chat` passes `app_settings` | BUGS.md B03a |
 | 2026-04-10 | B03b | Settings: third tab `#settings-tab-prompts` / `#settings-panel-prompts` + `#settings-system_prompt`; `FIELD_KEYS` + `activateSettingsTab("llm"|"embeddings"|"prompts")`; load/save via existing `fillForm`/`readForm` | BUGS.md B03b |
 | 2026-04-10 | B01 | `POST /upload` → `StreamingResponse` SSE (`stage`/`progress`/`detail`); `BookProcessor.iter_ingestion` yields progress bands B01; `done` carries `book`; failures → SSE `error` + cleanup (HTTP 200). `process_book` drains `iter_ingestion`; optional `on_progress` | BUGS.md B01 |
+| 2026-04-10 | B01-FE | `uploadBook` fourth arg `onProgress`; `_consumeBookUploadSse` + `getReader`/`text/event-stream`; `#upload-stage` + `.upload-stage` CSS; `book-upload.js` removes fake `setInterval`, drives bar + label from SSE | BUGS.md B01 |
 
 ---
 
