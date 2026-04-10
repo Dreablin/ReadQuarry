@@ -33,7 +33,15 @@ def test_app_js_imports_components(app_js: str) -> None:
 
 def test_app_js_imports_api(app_js: str) -> None:
     assert 'from "./api.js"' in app_js or "from './api.js'" in app_js
-    assert "createChatSession" in app_js or "listChatSessions" in app_js
+    assert "createChatSession" in app_js
+
+
+def test_app_js_book_select_creates_new_chat_session_not_list_reuse(app_js: str) -> None:
+    """B02: each book selection starts a new session; do not reuse newest from listChatSessions."""
+    assert "ensureSession" not in app_js
+    assert "listChatSessions" not in app_js
+    assert "createChatSession" in app_js
+    assert "book_id: bookId" in app_js or "book_id:bookId" in app_js.replace(" ", "")
 
 
 def test_app_js_exports_init_app(app_js: str) -> None:
