@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 9 — Bug Fixes (Round 4)
-**Next Task**: B01-TEST
-**Last Completed**: B01-FE
-**Total Progress**: 9 / 10 tasks
+**Next Task**: —
+**Last Completed**: B01-TEST
+**Total Progress**: 10 / 10 tasks (complete)
 
 ---
 
@@ -26,7 +26,7 @@
 - [x] **B03b**: Frontend: add "Prompts" tab to settings dialog with system prompt textarea — see BUGS.md B03b (depends on B03a)
 - [x] **B01**: Real upload progress bar via SSE — replace fake animation with server-streamed progress events — see BUGS.md B01
 - [x] **B01-FE**: Frontend: consume upload SSE stream and update progress bar with real stage data — see BUGS.md B01 (frontend part)
-- [ ] **B01-TEST**: Integration test for upload SSE progress events — see BUGS.md B01 (test part)
+- [x] **B01-TEST**: Integration test for upload SSE progress events — see BUGS.md B01 (test part)
 
 ---
 
@@ -44,6 +44,7 @@
 | 2026-04-10 | B03b | Settings: third tab `#settings-tab-prompts` / `#settings-panel-prompts` + `#settings-system_prompt`; `FIELD_KEYS` + `activateSettingsTab("llm"|"embeddings"|"prompts")`; load/save via existing `fillForm`/`readForm` | BUGS.md B03b |
 | 2026-04-10 | B01 | `POST /upload` → `StreamingResponse` SSE (`stage`/`progress`/`detail`); `BookProcessor.iter_ingestion` yields progress bands B01; `done` carries `book`; failures → SSE `error` + cleanup (HTTP 200). `process_book` drains `iter_ingestion`; optional `on_progress` | BUGS.md B01 |
 | 2026-04-10 | B01-FE | `uploadBook` fourth arg `onProgress`; `_consumeBookUploadSse` + `getReader`/`text/event-stream`; `#upload-stage` + `.upload-stage` CSS; `book-upload.js` removes fake `setInterval`, drives bar + label from SSE | BUGS.md B01 |
+| 2026-04-10 | B01-TEST | `tests/test_integration/test_upload_sse_integration.py`: success path asserts stages + embedding `detail` + single `done`; corrupt EPUB asserts SSE `error`, no `done`, book list unchanged | BUGS.md B01 |
 
 ---
 
