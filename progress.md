@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 9 — Bug Fixes (Round 4)
-**Next Task**: B07
-**Last Completed**: B02
-**Total Progress**: 1 / 10 tasks
+**Next Task**: B04
+**Last Completed**: B07
+**Total Progress**: 2 / 10 tasks
 
 ---
 
@@ -18,7 +18,7 @@
 ### Phase 9: Bug Fixes (Round 4)
 
 - [x] **B02**: Clear chat on book switch — create new session instead of reusing old one — see BUGS.md B02
-- [ ] **B07**: Add "Clear Chat" button — clear messages and create new session — see BUGS.md B07
+- [x] **B07**: Add "Clear Chat" button — clear messages and create new session — see BUGS.md B07
 - [ ] **B04**: Fix paragraph chunking — expand `clean_html` tag list to capture all block-level content — see BUGS.md B04
 - [ ] **B05**: Fix sentence chunking — handle paragraph boundaries in sentence splitting regex — see BUGS.md B05 (depends on B04)
 - [ ] **B06**: Fixed-size chunking UI — show chunk_size/overlap fields when "Fixed size" strategy selected — see BUGS.md B06
@@ -36,6 +36,7 @@
 |------|------|----------|-----------|
 | 2026-04-10 | B02 | Removed `ensureSession` / `listChatSessions`; book `onChange` always `createChatSession({ book_id })` then `loadHistory` (empty for new session) | BUGS.md B02 |
 | 2026-04-10 | — | Ollama integration tests `pytest.skip` on `httpx.HTTPStatusError` from `/api/chat` when Ollama is up but model errors (e.g. 500) | Stable full-suite gate |
+| 2026-04-10 | B07 | `#clear-chat` in `index.html`; `app.js` click → `createChatSession`, `sessionId`, `chatApi.clearMessages()`, `refs.clear()`, status "New conversation started"; no-op if no book | BUGS.md B07 |
 
 ---
 

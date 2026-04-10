@@ -81,3 +81,12 @@ def test_app_js_chat_on_done_passes_scores_to_references(app_js: str) -> None:
     assert "appendReferencedChunkIds" in app_js
     assert "onDone:" in app_js
     assert "appendReferencedChunkIds(bid, ids, scores)" in app_js
+
+
+def test_app_js_wires_clear_chat_button(app_js: str) -> None:
+    """B07: Clear Chat creates a new session, clears messages and references."""
+    assert "clear-chat" in app_js
+    assert "New conversation started" in app_js
+    assert "refs.clear()" in app_js
+    assert "createChatSession" in app_js
+    assert "clearMessages()" in app_js

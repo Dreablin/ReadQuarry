@@ -84,6 +84,13 @@ def test_index_html_chat_composer_and_messages(index_html: str) -> None:
     assert "send" in index_html.lower()
 
 
+def test_index_html_clear_chat_button(index_html: str) -> None:
+    """B07: Clear Chat control in discussion panel."""
+    assert 'id="clear-chat"' in index_html
+    assert 'class="btn-clear"' in index_html or "btn-clear" in index_html
+    assert "Clear Chat" in index_html
+
+
 def test_index_html_references_clear(index_html: str) -> None:
     assert "references-list" in index_html
     assert "clear-references" in index_html or 'id="clear-references"' in index_html

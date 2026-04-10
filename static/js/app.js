@@ -211,6 +211,23 @@ export async function initApp() {
 
   bookListRef = bookList;
 
+  document.getElementById("clear-chat")?.addEventListener("click", async () => {
+    const bookId = bookList.getSelectedBookId();
+    if (bookId == null) {
+      return;
+    }
+    try {
+      setStatus("Loading…");
+      const session = await createChatSession({ book_id: bookId });
+      sessionId = Number(session.id);
+      chatApi.clearMessages();
+      refs.clear();
+      setStatus("New conversation started");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Could not start new chat");
+    }
+  });
+
   initSettings({
     onAfterClearAllBooks: async () => {
       await bookList.refresh();
