@@ -7,6 +7,7 @@ Manual browser verification remains recommended for UI affordances.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,6 +19,23 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
+
+
+def _upload_done_book_smoke(response) -> dict:
+    assert response.status_code == 200, response.text
+    assert "text/event-stream" in response.headers.get("content-type", "")
+    book = None
+    for block in response.text.split("\n\n"):
+        for line in block.split("\n"):
+            s = line.strip()
+            if s.startswith("data: "):
+                obj = json.loads(s[6:])
+                if obj.get("stage") == "done":
+                    book = obj.get("book")
+                if obj.get("stage") == "error":
+                    raise AssertionError(obj)
+    assert book is not None
+    return book
 from src.db.database import Base, get_db
 
 
@@ -103,7 +121,7 @@ def test_readquarry_end_to_end_smoke(
             data={"chunking_strategy": "paragraph"},
         )
     assert up.status_code == 200
-    book_id = up.json()["id"]
+    book_id = _upload_done_book_smoke(up)["id"]
 
     listed = client.get("/api/books")
     assert listed.status_code == 200

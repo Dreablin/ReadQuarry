@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from pathlib import Path
@@ -15,6 +16,34 @@ from sqlalchemy.pool import StaticPool
 from main import app
 from src.api import books as books_module
 from src.db.database import Base, get_db
+
+
+def _parse_upload_sse(response) -> tuple[list[dict], dict | None]:
+    """Parse ``POST /api/books/upload`` SSE body into events and optional ``book`` from ``done``."""
+    assert response.status_code == 200, response.text
+    ct = response.headers.get("content-type", "")
+    assert "text/event-stream" in ct, ct
+    events: list[dict] = []
+    done_book: dict | None = None
+    for block in response.text.split("\n\n"):
+        for line in block.split("\n"):
+            s = line.strip()
+            if not s.startswith("data: "):
+                continue
+            obj = json.loads(s[6:])
+            events.append(obj)
+            if obj.get("stage") == "done":
+                done_book = obj.get("book")
+            if obj.get("stage") == "error":
+                raise AssertionError(f"SSE error event: {obj}")
+    return events, done_book
+
+
+def _upload_done_book(response) -> dict:
+    """Require a successful upload stream and return the ``book`` object from the final event."""
+    _events, book = _parse_upload_sse(response)
+    assert book is not None and isinstance(book, dict)
+    return book
 
 
 def _write_minimal_epub(path: Path, *, unique_token: str, word_count: int | None = None) -> None:
@@ -71,7 +100,7 @@ def test_books_upload_logs_save_path_and_book_id(caplog: pytest.LogCaptureFixtur
             data={"chunking_strategy": "paragraph"},
         )
     assert response.status_code == 200
-    book_id = response.json()["id"]
+    book_id = _upload_done_book(response)["id"]
     books_logs = [r for r in caplog.records if r.name == "src.api.books"]
     text = " ".join(r.getMessage() for r in books_logs)
     assert str(book_id) in text
@@ -90,7 +119,7 @@ def test_books_api_upload_list_get_delete(tmp_path: Path) -> None:
             data={"chunking_strategy": "paragraph"},
         )
     assert response.status_code == 200
-    payload = response.json()
+    payload = _upload_done_book(response)
     book_id = payload["id"]
 
     listed = client.get("/api/books")
@@ -127,7 +156,7 @@ def test_books_api_upload_allows_chat_session_for_same_book(tmp_path: Path) -> N
                 data={"chunking_strategy": "paragraph"},
             )
         assert up.status_code == 200
-        book_id = up.json()["id"]
+        book_id = _upload_done_book(up)["id"]
 
         sess = client.post(
             "/api/chat/sessions",
@@ -183,6 +212,7 @@ def test_books_api_rejects_duplicate_upload_same_bytes(tmp_path: Path) -> None:
             data={"chunking_strategy": "paragraph"},
         )
     assert first.status_code == 200
+    _upload_done_book(first)  # consume SSE stream
     with sample.open("rb") as f:
         second = client.post(
             "/api/books/upload",
@@ -201,14 +231,13 @@ def test_books_api_duplicate_upload_logs_warning(
     sample = tmp_path / "dup_warn.epub"
     _write_minimal_epub(sample, unique_token="b13-dup-warn-token")
     with sample.open("rb") as f:
-        assert (
-            client.post(
-                "/api/books/upload",
-                files={"file": ("dup_warn.epub", f, "application/epub+zip")},
-                data={"chunking_strategy": "paragraph"},
-            ).status_code
-            == 200
+        first = client.post(
+            "/api/books/upload",
+            files={"file": ("dup_warn.epub", f, "application/epub+zip")},
+            data={"chunking_strategy": "paragraph"},
         )
+    assert first.status_code == 200
+    _upload_done_book(first)
     with sample.open("rb") as f:
         r = client.post(
             "/api/books/upload",
@@ -328,8 +357,34 @@ def test_books_api_upload_b06_fixed_size_chunk_size_affects_chunk_count(tmp_path
         )
     assert ra.status_code == 200, ra.text
     assert rb.status_code == 200, rb.text
-    id_a = ra.json()["id"]
-    id_b = rb.json()["id"]
+    id_a = _upload_done_book(ra)["id"]
+    id_b = _upload_done_book(rb)["id"]
     ca = client.get(f"/api/books/{id_a}/chunks").json()
     cb = client.get(f"/api/books/{id_b}/chunks").json()
     assert len(ca) > len(cb)
+
+
+def test_books_api_upload_b01_sse_streams_progress_then_done(tmp_path: Path) -> None:
+    """B01: upload returns SSE with non-decreasing progress and a terminal done book payload."""
+    client = TestClient(app)
+    sample = tmp_path / "sse.epub"
+    _write_minimal_epub(sample, unique_token=uuid.uuid4().hex)
+    with sample.open("rb") as f:
+        response = client.post(
+            "/api/books/upload",
+            files={"file": ("sse.epub", f, "application/epub+zip")},
+            data={"chunking_strategy": "paragraph"},
+        )
+    events, book = _parse_upload_sse(response)
+    assert book is not None
+    assert book.get("id") is not None
+    stages = [e for e in events if e.get("stage") not in ("done", "error")]
+    progresses = [int(e["progress"]) for e in stages if "progress" in e]
+    assert progresses == sorted(progresses), progresses
+    assert progresses[0] >= 10
+    assert progresses[-1] >= 40
+    done_events = [e for e in events if e.get("stage") == "done"]
+    assert len(done_events) == 1
+    assert done_events[0].get("progress") == 100
+    assert "parsing" in {e.get("stage") for e in stages}
+    assert "chunking" in {e.get("stage") for e in stages}

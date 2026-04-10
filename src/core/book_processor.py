@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable, Generator
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,8 @@ from src.core.chunking import (
 from src.models.chunk import Chunk
 
 logger = logging.getLogger(__name__)
+
+ProgressCallback = Callable[[str, int, str | None], None]
 
 
 class BookProcessor:
@@ -41,7 +45,18 @@ class BookProcessor:
         }
         return mapping.get(strategy, ParagraphChunking())
 
-    def process_book(
+    @staticmethod
+    def _emit_progress(
+        on_progress: ProgressCallback | None,
+        stage: str,
+        progress: int,
+        detail: str | None = None,
+    ) -> tuple[str, int, str | None]:
+        if on_progress:
+            on_progress(stage, progress, detail)
+        return (stage, progress, detail)
+
+    def iter_ingestion(
         self,
         file_path: str,
         book_id: int,
@@ -50,12 +65,12 @@ class BookProcessor:
         *,
         chunk_size: int | None = None,
         overlap_ratio: float | None = None,
-    ) -> dict:
-        """Parse, chunk, embed, and index a book.
+        on_progress: ProgressCallback | None = None,
+    ) -> Generator[tuple[str, int, str | None], None, dict[str, Any]]:
+        """Parse, chunk, embed, and index a book, yielding ``(stage, progress, detail)`` tuples.
 
-        When ``db`` is provided, inserts one ``Chunk`` row per chunk before vector
-        and index storage so RAG can resolve Chroma ids to SQLite text. Chroma and
-        SearchEngine ids are set to ``str(chunk.id)``.
+        Percent bands follow B01: parsing 0–20, chunking 20–40, embedding 40–80,
+        indexing 80–95. The final return value matches :meth:`process_book`.
         """
         t0 = time.perf_counter()
         logger.info(
@@ -64,6 +79,8 @@ class BookProcessor:
             file_path,
             chunking_strategy,
         )
+        yield BookProcessor._emit_progress(on_progress, "parsing", 10, None)
+
         parser = self.parser_registry.get_parser(file_path)
         parser_name = type(parser).__name__
         parsed_book = parser.parse(file_path)
@@ -76,6 +93,7 @@ class BookProcessor:
             parsed_book.author,
             n_chapters,
         )
+        yield BookProcessor._emit_progress(on_progress, "parsing", 20, None)
 
         chunker = self._get_chunker(
             chunking_strategy,
@@ -102,6 +120,7 @@ class BookProcessor:
             chunker_name,
             len(chunks),
         )
+        yield BookProcessor._emit_progress(on_progress, "chunking", 30, None)
 
         texts = [c["text"] for c in chunks]
         if db is not None:
@@ -133,7 +152,16 @@ class BookProcessor:
             for c in chunks
         ]
 
+        yield BookProcessor._emit_progress(on_progress, "chunking", 40, None)
+
         if chunks:
+            n_chunk = len(texts)
+            yield BookProcessor._emit_progress(
+                on_progress,
+                "embedding",
+                50,
+                f"Embedding {n_chunk} chunks…",
+            )
             logger.info("Embedding book_id=%s batch_size=%d", book_id, len(texts))
             embeddings = self.embedding_service.embed_texts(texts)
             logger.info(
@@ -156,6 +184,7 @@ class BookProcessor:
                 collection_name,
                 len(chunk_ids),
             )
+            yield BookProcessor._emit_progress(on_progress, "embedding", 72, None)
 
             index_docs = [
                 {
@@ -166,6 +195,7 @@ class BookProcessor:
                 }
                 for i in range(len(chunks))
             ]
+            yield BookProcessor._emit_progress(on_progress, "indexing", 80, None)
             self.search_engine.index_documents(index_docs)
             index_path = str(self.search_engine.index_dir)
             logger.info(
@@ -174,11 +204,19 @@ class BookProcessor:
                 index_path,
                 len(index_docs),
             )
+            yield BookProcessor._emit_progress(on_progress, "indexing", 90, None)
         else:
             logger.info(
                 "Skipping embeddings and indexes book_id=%s (no chunks produced)",
                 book_id,
             )
+            yield BookProcessor._emit_progress(
+                on_progress,
+                "embedding",
+                55,
+                "No chunks produced; skipping embeddings",
+            )
+            yield BookProcessor._emit_progress(on_progress, "indexing", 85, None)
 
         elapsed = time.perf_counter() - t0
         logger.info(
@@ -195,3 +233,35 @@ class BookProcessor:
             "total_chunks": len(chunks),
             "chunking_strategy": chunking_strategy,
         }
+
+    def process_book(
+        self,
+        file_path: str,
+        book_id: int,
+        chunking_strategy: str = "paragraph",
+        db: Session | None = None,
+        *,
+        chunk_size: int | None = None,
+        overlap_ratio: float | None = None,
+        on_progress: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
+        """Parse, chunk, embed, and index a book (blocking; no SSE).
+
+        When ``db`` is provided, inserts one ``Chunk`` row per chunk before vector
+        and index storage so RAG can resolve Chroma ids to SQLite text. Chroma and
+        SearchEngine ids are set to ``str(chunk.id)``.
+        """
+        it = self.iter_ingestion(
+            file_path,
+            book_id,
+            chunking_strategy,
+            db,
+            chunk_size=chunk_size,
+            overlap_ratio=overlap_ratio,
+            on_progress=on_progress,
+        )
+        try:
+            while True:
+                next(it)
+        except StopIteration as ex:
+            return ex.value
