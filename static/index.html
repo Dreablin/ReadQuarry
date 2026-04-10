@@ -226,6 +226,16 @@
             >
               Embeddings &amp; Search
             </button>
+            <button
+              type="button"
+              id="settings-tab-prompts"
+              class="settings-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="settings-panel-prompts"
+            >
+              Prompts
+            </button>
           </div>
           <div
             id="settings-panel-llm"
@@ -325,6 +335,18 @@
               Clear Models Cache (Downloads)
             </button>
           </fieldset>
+          </div>
+          <div
+            id="settings-panel-prompts"
+            class="settings-tab-panel settings-tab-panel--hidden"
+            role="tabpanel"
+            aria-labelledby="settings-tab-prompts"
+          >
+            <fieldset class="settings-fieldset">
+              <legend>Prompts</legend>
+              <label for="settings-system_prompt">System prompt (Discussion)</label>
+              <textarea id="settings-system_prompt" name="system_prompt" rows="6"></textarea>
+            </fieldset>
           </div>
         </div>
         <p id="settings-feedback" class="settings-feedback" role="status" aria-live="polite"></p>

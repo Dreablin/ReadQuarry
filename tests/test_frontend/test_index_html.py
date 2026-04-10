@@ -151,6 +151,19 @@ def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     assert "role=\"tabpanel\"" in index_html
 
 
+def test_index_html_settings_b03b_prompts_tab(index_html: str) -> None:
+    """B03b: Prompts tab with system prompt textarea wired to settings API key."""
+    assert 'id="settings-tab-prompts"' in index_html
+    assert 'id="settings-panel-prompts"' in index_html
+    assert "settings-panel-prompts" in index_html
+    assert 'aria-controls="settings-panel-prompts"' in index_html
+    assert 'aria-labelledby="settings-tab-prompts"' in index_html
+    assert 'id="settings-system_prompt"' in index_html
+    assert 'name="system_prompt"' in index_html
+    assert "System prompt (Discussion)" in index_html
+    assert "<textarea" in index_html and "settings-system_prompt" in index_html
+
+
 def test_index_html_settings_search_score_threshold(index_html: str) -> None:
     """B03: Embeddings tab exposes search score threshold control."""
     assert 'id="settings-search_score_threshold"' in index_html
