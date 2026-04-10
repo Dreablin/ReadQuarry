@@ -43,6 +43,31 @@ def test_sentence_chunking_splits_on_unicode_ellipsis() -> None:
     assert chunks[1]["text"] == "Конец."
 
 
+def test_sentence_chunking_b05_paragraph_boundary_without_terminal_punct() -> None:
+    """B05: \\n\\n is a block boundary even when the prior block has no . ! ? …"""
+    text = "No ending punctuation here\n\nSecond paragraph starts."
+    chunks = SentenceChunking(overlap=0).chunk(text, metadata={"book_id": 1})
+    assert len(chunks) == 2
+    assert chunks[0]["text"] == "No ending punctuation here"
+    assert chunks[1]["text"] == "Second paragraph starts."
+
+
+def test_sentence_chunking_b05_multi_paragraph_then_sentences() -> None:
+    """B05: split paragraphs first, then sentences inside each."""
+    text = (
+        "Alpha starts. Alpha ends.\n\n"
+        "Beta only.\n\n"
+        "Gamma middle. Gamma last."
+    )
+    chunks = SentenceChunking(overlap=0).chunk(text, metadata={"book_id": 1})
+    assert len(chunks) == 5
+    assert chunks[0]["text"] == "Alpha starts."
+    assert chunks[1]["text"] == "Alpha ends."
+    assert chunks[2]["text"] == "Beta only."
+    assert chunks[3]["text"] == "Gamma middle."
+    assert chunks[4]["text"] == "Gamma last."
+
+
 def test_fixed_size_chunking_overlap_and_boundaries() -> None:
     text = "one two three four five six seven eight"
     chunks = FixedSizeChunking(chunk_size=4, overlap_ratio=0.25).chunk(text, metadata={"book_id": 1})
