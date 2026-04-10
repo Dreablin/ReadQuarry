@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config import settings as app_config
-from src.api.settings import get_settings
+from src.api.settings import SYSTEM_PROMPT_DEFAULT, get_settings
 from src.core.embeddings import DEFAULT_EMBEDDING_MODEL, EmbeddingService
 from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
 from src.core.llm_client import LLMClient
@@ -117,12 +117,12 @@ def _build_context_chunks(
     return "\n\n".join(lines), chunk_ids_ordered, chunk_scores_ordered
 
 
-def _system_prompt() -> str:
-    return (
-        "You are ReadQuarry, a book discussion assistant. Answer using only the excerpts below. "
-        "When you use information from an excerpt, cite it with the matching bracket label like [1] or [2]. "
-        "If the excerpts do not contain enough information, say so clearly."
-    )
+def _system_prompt(app_settings: dict[str, Any]) -> str:
+    """Resolve discussion system prompt from app settings (B03a)."""
+    raw = app_settings.get("system_prompt", SYSTEM_PROMPT_DEFAULT)
+    if raw is None:
+        return SYSTEM_PROMPT_DEFAULT
+    return str(raw)
 
 
 def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
@@ -141,7 +141,7 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     context_text, ref_chunk_ids, ref_chunk_scores = _build_context_chunks(db, book_id, user_text, app_settings)
 
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": _system_prompt()},
+        {"role": "system", "content": _system_prompt(app_settings)},
     ]
     if context_text:
         user_block = f"Book excerpts:\n\n{context_text}\n\nQuestion:\n{user_text}"

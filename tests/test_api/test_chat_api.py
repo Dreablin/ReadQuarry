@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
+from src.api import chat as chat_module
+from src.api import settings as settings_module
 from src.db.database import Base, get_db
 from src.models.book import Book
 
@@ -63,6 +65,15 @@ def _insert_book(session: Session) -> int:
     session.commit()
     session.refresh(book)
     return book.id
+
+
+def test_chat_b03a_system_prompt_reads_from_app_settings() -> None:
+    """B03a: _system_prompt uses app_settings system_prompt or default string."""
+    default = str(settings_module.DEFAULTS["system_prompt"])
+    assert chat_module._system_prompt({}) == default
+    assert chat_module._system_prompt({"system_prompt": default}) == default
+    custom = "CUSTOM_SYSTEM_PROMPT_B03A"
+    assert chat_module._system_prompt({"system_prompt": custom}) == custom
 
 
 def test_chat_create_session_returns_404_when_book_missing(client_with_db: TestClient, memory_db: Session) -> None:

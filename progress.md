@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 9 — Bug Fixes (Round 4)
-**Next Task**: B03a
-**Last Completed**: B06
-**Total Progress**: 5 / 10 tasks
+**Next Task**: B03b
+**Last Completed**: B03a
+**Total Progress**: 6 / 10 tasks
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] **B04**: Fix paragraph chunking — expand `clean_html` tag list to capture all block-level content — see BUGS.md B04
 - [x] **B05**: Fix sentence chunking — handle paragraph boundaries in sentence splitting regex — see BUGS.md B05 (depends on B04)
 - [x] **B06**: Fixed-size chunking UI — show chunk_size/overlap fields when "Fixed size" strategy selected — see BUGS.md B06
-- [ ] **B03a**: Backend: add `system_prompt` to settings defaults and wire into `_system_prompt()` — see BUGS.md B03a
+- [x] **B03a**: Backend: add `system_prompt` to settings defaults and wire into `_system_prompt()` — see BUGS.md B03a
 - [ ] **B03b**: Frontend: add "Prompts" tab to settings dialog with system prompt textarea — see BUGS.md B03b (depends on B03a)
 - [ ] **B01**: Real upload progress bar via SSE — replace fake animation with server-streamed progress events — see BUGS.md B01
 - [ ] **B01-FE**: Frontend: consume upload SSE stream and update progress bar with real stage data — see BUGS.md B01 (frontend part)
@@ -40,6 +40,7 @@
 | 2026-04-10 | B04 | `_EXTRACT_BLOCK_TAGS` adds blockquote, dd, dt, figcaption, td, th, pre, div; emit only tags with no inner extractable descendant (dedupe + leaf divs); `find_all` order preserves document order | BUGS.md B04 |
 | 2026-04-10 | B05 | `SentenceChunking.chunk` splits on `\n\s*\n` first, then `(?<=[.!?…])\s+` per paragraph so `\n\n` separates units without terminal punctuation | BUGS.md B05 |
 | 2026-04-10 | B06 | Upload: `#upload-fixed-size-options` + `uploadBook(..., { chunkSize, overlapRatio })` → Form `chunk_size`/`overlap_ratio`; API validates 50–2000 / 0–0.5; `BookProcessor.process_book` forwards to `FixedSizeChunking` (defaults 256/0.15 when omitted) | BUGS.md B06 |
+| 2026-04-10 | B03a | `SYSTEM_PROMPT_DEFAULT` + `DEFAULTS["system_prompt"]`; `SettingsUpdate.system_prompt`; `_system_prompt(app_settings)` uses `get` + None guard; `_stream_chat` passes `app_settings` | BUGS.md B03a |
 
 ---
 

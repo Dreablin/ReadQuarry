@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
+SYSTEM_PROMPT_DEFAULT = (
+    "You are ReadQuarry, a book discussion assistant. Answer using only the excerpts below. "
+    "When you use information from an excerpt, cite it with the matching bracket label like [1] or [2]. "
+    "If the excerpts do not contain enough information, say so clearly."
+)
+
 
 DEFAULTS: dict[str, object] = {
     "llm_mode": "ollama",  # "ollama" | "cloud"
@@ -34,6 +40,7 @@ DEFAULTS: dict[str, object] = {
     "exact_results": 5,
     "final_context_chunks": 7,
     "search_score_threshold": 0.6,
+    "system_prompt": SYSTEM_PROMPT_DEFAULT,
 }
 
 _SETTINGS: dict[str, object] = dict(DEFAULTS)
@@ -89,6 +96,8 @@ class SettingsUpdate(BaseModel):
     exact_results: int | None = Field(default=None, gt=0)
     final_context_chunks: int | None = Field(default=None, gt=0)
     search_score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
+
+    system_prompt: str | None = None
 
     @field_validator("ollama_base_url", "api_base_url", mode="before")
     @classmethod

@@ -50,6 +50,38 @@ def test_settings_api_get_returns_defaults() -> None:
     assert "embedding_model" in payload
 
 
+def test_settings_api_b03a_system_prompt_in_defaults() -> None:
+    """B03a: system_prompt is in DEFAULTS and returned by GET."""
+    assert "system_prompt" in settings_module.DEFAULTS
+    sp = str(settings_module.DEFAULTS["system_prompt"])
+    assert "ReadQuarry" in sp
+    assert "[1]" in sp or "[2]" in sp
+    r = client.get("/api/settings")
+    assert r.status_code == 200
+    assert r.json()["system_prompt"] == sp
+
+
+def test_settings_api_b03a_system_prompt_update_via_put(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B03a: system_prompt can be updated with PUT and persists."""
+    monkeypatch.setattr(settings_module, "app_config", SimpleNamespace(data_dir=tmp_path))
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+
+    c = TestClient(app)
+    custom = "You are a test assistant. Be brief."
+    r = c.put("/api/settings", json={"system_prompt": custom})
+    assert r.status_code == 200
+    assert r.json()["system_prompt"] == custom
+    assert c.get("/api/settings").json()["system_prompt"] == custom
+
+    path = tmp_path / "settings.json"
+    assert path.is_file()
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    assert on_disk["system_prompt"] == custom
+
+
 def test_settings_api_update_and_get_persists() -> None:
     response = client.put(
         "/api/settings",
