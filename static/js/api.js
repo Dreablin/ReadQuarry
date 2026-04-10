@@ -42,12 +42,19 @@ async function _jsonOrThrow(res) {
 /**
  * @param {File} file
  * @param {string} [chunkingStrategy]
+ * @param {{ chunkSize?: number, overlapRatio?: number }} [extras] fixed-size upload options
  * @returns {Promise<unknown>}
  */
-export async function uploadBook(file, chunkingStrategy = "paragraph") {
+export async function uploadBook(file, chunkingStrategy = "paragraph", extras = {}) {
   const body = new FormData();
   body.append("file", file);
   body.append("chunking_strategy", chunkingStrategy);
+  if (extras.chunkSize != null && Number.isFinite(Number(extras.chunkSize))) {
+    body.append("chunk_size", String(Math.round(Number(extras.chunkSize))));
+  }
+  if (extras.overlapRatio != null && Number.isFinite(Number(extras.overlapRatio))) {
+    body.append("overlap_ratio", String(Number(extras.overlapRatio)));
+  }
   const res = await fetch("/api/books/upload", { method: "POST", body });
   return _jsonOrThrow(res);
 }

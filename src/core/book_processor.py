@@ -23,11 +23,20 @@ class BookProcessor:
         self.vector_store = vector_store
         self.search_engine = search_engine
 
-    def _get_chunker(self, strategy: str):  # type: ignore[no-untyped-def]
+    def _get_chunker(
+        self,
+        strategy: str,
+        *,
+        chunk_size: int | None = None,
+        overlap_ratio: float | None = None,
+    ):  # type: ignore[no-untyped-def]
+        if strategy == "fixed-size":
+            size = 256 if chunk_size is None else max(1, int(chunk_size))
+            ratio = 0.15 if overlap_ratio is None else float(overlap_ratio)
+            return FixedSizeChunking(chunk_size=size, overlap_ratio=ratio)
         mapping = {
             "paragraph": ParagraphChunking(),
             "sentence": SentenceChunking(),
-            "fixed-size": FixedSizeChunking(),
             "chapter-aware-recursive": ChapterAwareRecursiveChunking(),
         }
         return mapping.get(strategy, ParagraphChunking())
@@ -38,6 +47,9 @@ class BookProcessor:
         book_id: int,
         chunking_strategy: str = "paragraph",
         db: Session | None = None,
+        *,
+        chunk_size: int | None = None,
+        overlap_ratio: float | None = None,
     ) -> dict:
         """Parse, chunk, embed, and index a book.
 
@@ -65,7 +77,11 @@ class BookProcessor:
             n_chapters,
         )
 
-        chunker = self._get_chunker(chunking_strategy)
+        chunker = self._get_chunker(
+            chunking_strategy,
+            chunk_size=chunk_size,
+            overlap_ratio=overlap_ratio,
+        )
         chunker_name = type(chunker).__name__
         chunks: list[dict] = []
         for chapter in parsed_book.chapters:

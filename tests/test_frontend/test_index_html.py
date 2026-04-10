@@ -107,6 +107,13 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-progress" in index_html
 
 
+def test_index_html_upload_fixed_size_chunk_options(index_html: str) -> None:
+    """B06: conditional fixed-size chunk size and overlap fields."""
+    assert 'id="upload-fixed-size-options"' in index_html
+    assert 'id="upload-chunk-size"' in index_html
+    assert 'id="upload-overlap-ratio"' in index_html
+
+
 def test_index_html_upload_feedback_for_errors(index_html: str) -> None:
     """B13: inline upload error area inside the dialog (not only status bar)."""
     assert 'id="upload-feedback"' in index_html

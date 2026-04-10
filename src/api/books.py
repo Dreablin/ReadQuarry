@@ -46,11 +46,17 @@ def _book_to_response(book: Book) -> dict:
 async def upload_book(
     file: UploadFile = File(...),
     chunking_strategy: str = Form("paragraph"),
+    chunk_size: int | None = Form(default=None),
+    overlap_ratio: float | None = Form(default=None),
     db: Session = Depends(get_db),
 ) -> dict:
     allowed_strategies = {"paragraph", "sentence", "fixed-size", "chapter-aware-recursive"}
     if chunking_strategy not in allowed_strategies:
         raise HTTPException(status_code=400, detail="Unsupported chunking strategy")
+    if chunk_size is not None and (chunk_size < 50 or chunk_size > 2000):
+        raise HTTPException(status_code=400, detail="chunk_size must be between 50 and 2000")
+    if overlap_ratio is not None and (overlap_ratio < 0.0 or overlap_ratio > 0.5):
+        raise HTTPException(status_code=400, detail="overlap_ratio must be between 0 and 0.5")
     if not file.filename or not file.filename.lower().endswith(".epub"):
         raise HTTPException(status_code=400, detail="Only EPUB files are supported")
 
@@ -114,7 +120,14 @@ async def upload_book(
         ),
     )
     try:
-        result = processor.process_book(str(destination), book_id, chunking_strategy, db=db)
+        result = processor.process_book(
+            str(destination),
+            book_id,
+            chunking_strategy,
+            db=db,
+            chunk_size=chunk_size,
+            overlap_ratio=overlap_ratio,
+        )
         logger.info(
             "Upload pipeline succeeded book_id=%s total_chunks=%s title=%r",
             book_id,

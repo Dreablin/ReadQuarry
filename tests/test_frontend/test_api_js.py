@@ -31,6 +31,12 @@ def test_api_js_books_endpoints(api_js: str) -> None:
     assert "chunks" in api_js
 
 
+def test_api_js_upload_book_supports_fixed_size_form_fields(api_js: str) -> None:
+    """B06: uploadBook appends chunk_size / overlap_ratio for fixed-size uploads."""
+    assert "chunk_size" in api_js
+    assert "overlap_ratio" in api_js
+
+
 def test_api_js_clear_all_books(api_js: str) -> None:
     """B16: DELETE /api/books clears all books."""
     assert "clearAllBooks" in api_js

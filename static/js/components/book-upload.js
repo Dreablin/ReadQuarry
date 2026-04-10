@@ -65,6 +65,9 @@ export function initBookUpload(options = {}) {
   const dropzone = requireEl("dropzone", document.getElementById(ids.dropzone));
   const fileInput = /** @type {HTMLInputElement} */ (requireEl("fileInput", document.getElementById(ids.fileInput)));
   const chunkSelect = /** @type {HTMLSelectElement} */ (requireEl("chunkSelect", document.getElementById(ids.chunkSelect)));
+  const fixedSizeOptions = document.getElementById("upload-fixed-size-options");
+  const chunkSizeInput = /** @type {HTMLInputElement | null} */ (document.getElementById("upload-chunk-size"));
+  const overlapRatioInput = /** @type {HTMLInputElement | null} */ (document.getElementById("upload-overlap-ratio"));
   const feedbackEl = /** @type {HTMLParagraphElement} */ (
     requireEl("feedback", document.getElementById(ids.feedback))
   );
@@ -173,6 +176,15 @@ export function initBookUpload(options = {}) {
     if (f) pickFile(f);
   });
 
+  function syncFixedSizeOptionsVisibility() {
+    if (!fixedSizeOptions) return;
+    const show = chunkSelect.value === "fixed-size";
+    fixedSizeOptions.hidden = !show;
+  }
+
+  chunkSelect.addEventListener("change", syncFixedSizeOptionsVisibility);
+  syncFixedSizeOptionsVisibility();
+
   dropzone.addEventListener("dragenter", (e) => {
     e.preventDefault();
     dropzone.classList.add("upload-dropzone--active");
@@ -213,7 +225,16 @@ export function initBookUpload(options = {}) {
     startProgressAnimation();
 
     try {
-      const result = await uploadBook(selectedFile, strategy);
+      /** B06: extras.chunkSize / extras.overlapRatio → FormData chunk_size / overlap_ratio in api.js */
+      /** @type {{ chunkSize?: number, overlapRatio?: number }} */
+      const extras = {};
+      if (strategy === "fixed-size" && chunkSizeInput && overlapRatioInput) {
+        const cs = parseInt(String(chunkSizeInput.value), 10);
+        const orv = parseFloat(String(overlapRatioInput.value));
+        if (Number.isFinite(cs)) extras.chunkSize = cs;
+        if (Number.isFinite(orv)) extras.overlapRatio = orv;
+      }
+      const result = await uploadBook(selectedFile, strategy, extras);
       stopProgressAnimation();
       setProgress(100, progressBar, progressContainer);
       clearUploadFeedback();

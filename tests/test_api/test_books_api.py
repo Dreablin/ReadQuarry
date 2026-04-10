@@ -17,14 +17,18 @@ from src.api import books as books_module
 from src.db.database import Base, get_db
 
 
-def _write_minimal_epub(path: Path, *, unique_token: str) -> None:
+def _write_minimal_epub(path: Path, *, unique_token: str, word_count: int | None = None) -> None:
     """Valid EPUB with unique body text so file_hash differs per test run."""
     book = epub.EpubBook()
     book.set_identifier(f"id-{unique_token}")
     book.set_title("Sample EPUB")
     book.set_language("en")
     book.add_author("Author A")
-    body = f"<p>Alpha rabbit smoke {unique_token}.</p>"
+    if word_count is not None and word_count > 0:
+        words = " ".join(f"w{i}x{unique_token[:4]}" for i in range(word_count))
+        body = f"<p>{words}</p>"
+    else:
+        body = f"<p>Alpha rabbit smoke {unique_token}.</p>"
     c1 = epub.EpubHtml(title="One", file_name="chap_1.xhtml", content=f"<h1>One</h1>{body}")
     book.add_item(c1)
     book.toc = (c1,)
@@ -291,3 +295,41 @@ def test_books_api_delete_all_logs_info(
         assert "count=1" in infos[-1].getMessage()
     finally:
         app.dependency_overrides.clear()
+
+
+def test_books_api_upload_b06_fixed_size_chunk_size_affects_chunk_count(tmp_path: Path) -> None:
+    """B06: smaller chunk_size yields more chunks for the same long body."""
+    client = TestClient(app)
+    tok_a = uuid.uuid4().hex
+    tok_b = uuid.uuid4().hex
+    pa = tmp_path / f"b06a_{tok_a}.epub"
+    pb = tmp_path / f"b06b_{tok_b}.epub"
+    _write_minimal_epub(pa, unique_token=tok_a, word_count=120)
+    _write_minimal_epub(pb, unique_token=tok_b, word_count=120)
+    with pa.open("rb") as fa:
+        ra = client.post(
+            "/api/books/upload",
+            files={"file": ("a.epub", fa, "application/epub+zip")},
+            data={
+                "chunking_strategy": "fixed-size",
+                "chunk_size": "50",
+                "overlap_ratio": "0.1",
+            },
+        )
+    with pb.open("rb") as fb:
+        rb = client.post(
+            "/api/books/upload",
+            files={"file": ("b.epub", fb, "application/epub+zip")},
+            data={
+                "chunking_strategy": "fixed-size",
+                "chunk_size": "80",
+                "overlap_ratio": "0.1",
+            },
+        )
+    assert ra.status_code == 200, ra.text
+    assert rb.status_code == 200, rb.text
+    id_a = ra.json()["id"]
+    id_b = rb.json()["id"]
+    ca = client.get(f"/api/books/{id_a}/chunks").json()
+    cb = client.get(f"/api/books/{id_b}/chunks").json()
+    assert len(ca) > len(cb)
