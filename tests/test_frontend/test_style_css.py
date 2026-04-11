@@ -119,6 +119,14 @@ def test_style_css_logs_view_panel(style_css: str) -> None:
     assert "log-viewer" in style_css
 
 
+def test_style_css_b07css_log_filter_bar(style_css: str) -> None:
+    """B07-CSS: Tag filter row under logs uses theme tokens and matches search/header controls."""
+    assert "B07-CSS" in style_css
+    assert ".log-filter" in style_css
+    assert ".log-filter label" in style_css
+    assert "#log-filter-tag" in style_css
+
+
 def test_style_css_upload_feedback_error_visible(style_css: str) -> None:
     """B13: upload dialog inline error styling."""
     assert ".upload-feedback" in style_css
