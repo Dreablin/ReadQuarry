@@ -22,6 +22,7 @@ const FIELD_KEYS = [
   "model_id",
   "max_tokens",
   "temperature",
+  "llm_timeout",
   "embedding_model",
   "embedding_device",
   "semantic_top_k",
@@ -107,7 +108,8 @@ function readForm() {
       key === "max_tokens" ||
       key === "semantic_top_k" ||
       key === "exact_results" ||
-      key === "final_context_chunks"
+      key === "final_context_chunks" ||
+      key === "llm_timeout"
     ) {
       const n = parseInt(String(raw), 10);
       if (!Number.isNaN(n)) out[key] = n;

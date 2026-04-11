@@ -103,3 +103,13 @@ def test_settings_js_clear_models_cache_wiring(settings_js: str) -> None:
 def test_settings_js_search_score_threshold_field(settings_js: str) -> None:
     """B03: Embeddings tab includes search score threshold in form keys."""
     assert "search_score_threshold" in settings_js
+
+
+def test_settings_js_b03fe_llm_timeout_in_field_keys_and_readform(settings_js: str) -> None:
+    """B03-FE: llm_timeout is saved/loaded with other settings (int in readForm)."""
+    assert '"llm_timeout"' in settings_js or "'llm_timeout'" in settings_js
+    assert "fieldId" in settings_js
+    assert "settings-${key}" in settings_js
+    assert "getElementById(fieldId(key))" in settings_js
+    assert "parseInt" in settings_js
+    assert "key === \"llm_timeout\"" in settings_js or "key === 'llm_timeout'" in settings_js

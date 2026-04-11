@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 10 — Bug Fixes (Round 5)
-**Next Task**: B03-FE
-**Last Completed**: B07
-**Total Progress**: 7 / 9 tasks
+**Next Task**: B07-CSS
+**Last Completed**: B03-FE
+**Total Progress**: 8 / 9 tasks
 
 ---
 
@@ -24,7 +24,7 @@
 - [x] **B05**: Add duration logging with TIME tag for search, chat, embedding operations — see BUGS.md B05 (depends on B04)
 - [x] **B06**: Log full LLM prompt and response with LLM tag — see BUGS.md B06 (depends on B04)
 - [x] **B07**: Add tag filter dropdown to Logs viewer — see BUGS.md B07 (depends on B04)
-- [ ] **B03-FE**: Add `llm_timeout` input to Settings LLM tab and wire in `settings.js` — see BUGS.md B03 (frontend part)
+- [x] **B03-FE**: Add `llm_timeout` input to Settings LLM tab and wire in `settings.js` — see BUGS.md B03 (frontend part)
 - [ ] **B07-CSS**: Style the log filter bar to match the app theme — see BUGS.md B07 (CSS part, depends on B07)
 
 ---
@@ -40,6 +40,7 @@
 | 2026-04-10 | B05 | Chat RAG sub-steps (embed, Chroma, exact, merge) log only when the book has chunks; `_stream_chat` always logs context build + LLM + pipeline totals. | Matches BUGS: skip heavy steps when `n_chunks == 0`; pipeline timing still useful. |
 | 2026-04-10 | B06 | Prompt log capped at 5000 chars; response body log capped at 2000 chars (BUGS examples). | Keeps ring buffer usable; metadata `LLM request … context_chars` retained. |
 | 2026-04-10 | B07 | `initLogViewer` now requires `#log-filter-tag`; styling deferred to B07-CSS. | Matches BUGS split: functional filter first, theme in follow-up task. |
+| 2026-04-10 | B03-FE | Frontend test asserts fieldId template (settings-${key}), getElementById(fieldId(key)), and readForm parseInt for llm_timeout—not a literal settings-llm_timeout string in JS. | IDs are built dynamically; HTML test still pins #settings-llm_timeout. |
 
 ---
 

@@ -204,6 +204,17 @@ def test_index_html_settings_llm_ollama_cloud_groups(index_html: str) -> None:
     assert "settings-model_id" in index_html
 
 
+def test_index_html_settings_b03fe_llm_timeout(index_html: str) -> None:
+    """B03-FE: Shared LLM section includes configurable timeout (Ollama and Cloud)."""
+    assert 'id="settings-llm_timeout"' in index_html
+    assert 'name="llm_timeout"' in index_html
+    assert "LLM timeout (seconds)" in index_html
+    assert 'min="10"' in index_html
+    assert 'max="600"' in index_html
+    assert 'step="10"' in index_html
+    assert "settings-llm-shared" in index_html
+
+
 def test_index_html_search_view_and_app_module(index_html: str) -> None:
     assert "view-search" in index_html
     assert "search-query" in index_html
