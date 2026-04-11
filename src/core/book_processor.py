@@ -162,8 +162,20 @@ class BookProcessor:
                 50,
                 f"Embedding {n_chunk} chunks…",
             )
-            logger.info("Embedding book_id=%s batch_size=%d", book_id, len(texts))
-            embeddings = self.embedding_service.embed_texts(texts)
+            logger.info("Embedding book_id=%s total_chunks=%d", book_id, len(texts))
+            embeddings: list[list[float]] = []
+            batch_size = 16
+            for i in range(0, n_chunk, batch_size):
+                batch_texts = texts[i:i+batch_size]
+                batch_emb = self.embedding_service.embed_texts(batch_texts)
+                embeddings.extend(batch_emb)
+                progress_pct = 50 + int((len(embeddings) / n_chunk) * 22)
+                yield BookProcessor._emit_progress(
+                    on_progress,
+                    "embedding",
+                    progress_pct,
+                    f"Embedding {len(embeddings)} / {n_chunk} chunks…"
+                )
             logger.info(
                 "Embeddings ready book_id=%s vectors=%d dim=%d",
                 book_id,

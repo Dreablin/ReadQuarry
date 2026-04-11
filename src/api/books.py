@@ -195,7 +195,7 @@ def delete_all_books(db: Session = Depends(get_db)) -> dict:
         destination = uploads_dir / f"{book.id}_{book.file_name}"
         destination.unlink(missing_ok=True)
         vs.delete_collection(f"book_{book.id}")
-        shutil.rmtree(settings.data_dir / "tantivy_index" / f"book_{book.id}", ignore_errors=True)
+        SearchEngine(index_dir=str(settings.data_dir / "tantivy_index" / f"book_{book.id}")).delete_index()
     if count:
         db.execute(delete(Book))
         db.commit()
@@ -245,7 +245,7 @@ def delete_book(book_id: int, db: Session = Depends(get_db)) -> dict:
 
     VectorStore(persist_directory=str(settings.data_dir / "chroma")).delete_collection(f"book_{book_id}")
     index_dir = settings.data_dir / "tantivy_index" / f"book_{book_id}"
-    shutil.rmtree(index_dir, ignore_errors=True)
+    SearchEngine(index_dir=str(index_dir)).delete_index()
 
     db.delete(book)
     db.commit()

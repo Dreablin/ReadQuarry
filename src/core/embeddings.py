@@ -145,7 +145,7 @@ class EmbeddingService:
             raise TypeError("text must be a string")
         if self._model is None:
             return self._fallback_embed(text)
-        vector = self._model.encode(text)
+        vector = self._model.encode(text, show_progress_bar=False)
         return [float(v) for v in vector]
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
@@ -155,5 +155,5 @@ class EmbeddingService:
             raise TypeError("texts must be a list of strings")
         if self._model is None:
             return [self._fallback_embed(text) for text in texts]
-        vectors = self._model.encode(texts)
+        vectors = self._model.encode(texts, show_progress_bar=False)
         return [[float(v) for v in row] for row in vectors]
