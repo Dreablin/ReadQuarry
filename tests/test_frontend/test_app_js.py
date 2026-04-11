@@ -83,6 +83,31 @@ def test_app_js_chat_on_done_passes_scores_to_references(app_js: str) -> None:
     assert "appendReferencedChunkIds(bid, ids, scores)" in app_js
 
 
+def _extract_arrow_callback_body(source: str, label: str) -> str:
+    """Return the `{ ... }` body after `label: (...) =>`."""
+    start = source.index(label)
+    arrow = source.index("=>", start)
+    open_brace = source.index("{", arrow)
+    depth = 0
+    for i in range(open_brace, len(source)):
+        ch = source[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return source[open_brace + 1 : i]
+    raise AssertionError(f"unclosed callback body for {label!r}")
+
+
+def test_app_js_chat_on_done_clears_references_before_append(app_js: str) -> None:
+    """B01: onDone clears the references panel before appending the new response."""
+    body = _extract_arrow_callback_body(app_js, "onDone:")
+    assert "refs.clear()" in body
+    assert "appendReferencedChunkIds" in body
+    assert body.index("refs.clear()") < body.index("appendReferencedChunkIds")
+
+
 def test_app_js_wires_clear_chat_button(app_js: str) -> None:
     """B07: Clear Chat creates a new session, clears messages and references."""
     assert "clear-chat" in app_js

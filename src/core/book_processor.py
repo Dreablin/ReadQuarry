@@ -164,7 +164,8 @@ class BookProcessor:
             )
             logger.info("Embedding book_id=%s total_chunks=%d", book_id, len(texts))
             embeddings: list[list[float]] = []
-            batch_size = 16
+            # Шаг обновления 5% от всех чанков (минимум 1)
+            batch_size = max(1, int(n_chunk * 0.05))
             for i in range(0, n_chunk, batch_size):
                 batch_texts = texts[i:i+batch_size]
                 batch_emb = self.embedding_service.embed_texts(batch_texts)

@@ -183,7 +183,10 @@ export async function initApp() {
     onError: setStatus,
     onDone: (ids, scores) => {
       const bid = bookListRef?.getSelectedBookId() ?? null;
-      if (bid != null) void refs.appendReferencedChunkIds(bid, ids, scores);
+      if (bid != null) {
+        refs.clear();
+        void refs.appendReferencedChunkIds(bid, ids, scores);
+      }
     },
   });
 
