@@ -252,6 +252,7 @@ class BookProcessor:
             book_id,
             len(chunks),
             elapsed,
+            extra={"tag": "TIME"},
         )
 
         return {

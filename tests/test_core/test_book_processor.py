@@ -93,6 +93,23 @@ def test_book_processor_b06_fixed_size_respects_chunk_size_and_overlap() -> None
     assert small["total_chunks"] > large["total_chunks"]
 
 
+def test_book_processor_b05_ingestion_complete_uses_time_tag(caplog: pytest.LogCaptureFixture) -> None:
+    """B05: final ingestion elapsed log is tagged TIME for the log viewer."""
+    caplog.set_level(logging.INFO, logger="src.core.book_processor")
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=42, chunking_strategy="paragraph")
+    complete = [r for r in caplog.records if "Ingestion complete" in r.getMessage()]
+    assert complete
+    assert getattr(complete[-1], "tag", None) == "TIME"
+
+
 def test_book_processor_logs_ingestion_pipeline_stages(caplog: pytest.LogCaptureFixture) -> None:
     """B11: ingestion logs parser, chapters, chunks, ChromaDB, SearchEngine index, timing."""
     caplog.set_level(logging.INFO, logger="src.core.book_processor")

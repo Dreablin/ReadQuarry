@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 10 — Bug Fixes (Round 5)
-**Next Task**: B05
-**Last Completed**: B04
-**Total Progress**: 4 / 9 tasks
+**Next Task**: B06
+**Last Completed**: B05
+**Total Progress**: 5 / 9 tasks
 
 ---
 
@@ -21,7 +21,7 @@
 - [x] **B02**: Save chunks to `data/book_load_chunks.txt` during ingestion — see BUGS.md B02
 - [x] **B03**: Add `llm_timeout` setting (default 300s) and wire to LLMClient — see BUGS.md B03
 - [x] **B04**: Add tag system to log entries (INFO, TIME, LLM) — update `RingBufferHandler` and API — see BUGS.md B04
-- [ ] **B05**: Add duration logging with TIME tag for search, chat, embedding operations — see BUGS.md B05 (depends on B04)
+- [x] **B05**: Add duration logging with TIME tag for search, chat, embedding operations — see BUGS.md B05 (depends on B04)
 - [ ] **B06**: Log full LLM prompt and response with LLM tag — see BUGS.md B06 (depends on B04)
 - [ ] **B07**: Add tag filter dropdown to Logs viewer — see BUGS.md B07 (depends on B04)
 - [ ] **B03-FE**: Add `llm_timeout` input to Settings LLM tab and wire in `settings.js` — see BUGS.md B03 (frontend part)
@@ -37,6 +37,7 @@
 | 2026-04-10 | B02 | `GET`/`SSE` book payloads include `total_chunks`; B06 API test compares upload `done` book counts instead of `GET /chunks` length. | Chunk rows can accumulate in the dev SQLite DB across runs; `total_chunks` reflects the current ingestion. |
 | 2026-04-10 | B03 | Cloud `OpenAI` client always receives `timeout=self._timeout` (resolved from settings or kwarg). | Aligns cloud chat with configurable `llm_timeout`; `/test-llm` still passes `timeout=10.0` explicitly. |
 | 2026-04-10 | B04 | `get_logs()` normalizes legacy buffer rows with `setdefault("tag", "INFO")` when building the response. | Ring buffer may contain pre-B04 dicts without `tag` during long-lived test processes. |
+| 2026-04-10 | B05 | Chat RAG sub-steps (embed, Chroma, exact, merge) log only when the book has chunks; `_stream_chat` always logs context build + LLM + pipeline totals. | Matches BUGS: skip heavy steps when `n_chunks == 0`; pipeline timing still useful. |
 
 ---
 

@@ -137,6 +137,31 @@ def test_chat_messages_empty_then_post_streams_sse(client_with_db: TestClient, m
     assert msgs[1]["content"] == "Hello"
 
 
+def test_chat_b05_time_tagged_logs_after_message(client_with_db: TestClient, memory_db: Session) -> None:
+    """B05: chat path logs context build, LLM, and pipeline durations with TIME tag."""
+    bid = _insert_book(memory_db)
+    sid = client_with_db.post("/api/chat/sessions", json={"book_id": bid}).json()["id"]
+
+    def _stream_once() -> object:
+        chunk = MagicMock()
+        chunk.choices = [MagicMock(delta=MagicMock(content="ok"))]
+        yield chunk
+
+    with patch("src.api.chat.LLMClient") as mock_llm_cls:
+        mock_llm_cls.return_value.chat_completion.return_value = _stream_once()
+        r = client_with_db.post(
+            f"/api/chat/sessions/{sid}/message",
+            json={"content": "b05 time tag chat question"},
+        )
+    assert r.status_code == 200
+    body = client_with_db.get("/api/logs").json()
+    time_msgs = [e["message"] for e in body["entries"] if e.get("tag") == "TIME"]
+    sid_pat = f"session_id={sid}"
+    assert any("Chat context build" in m and sid_pat in m for m in time_msgs)
+    assert any("Chat LLM completion" in m and sid_pat in m for m in time_msgs)
+    assert any("Chat pipeline" in m and sid_pat in m for m in time_msgs)
+
+
 def test_chat_message_404_bad_session(client_with_db: TestClient, memory_db: Session) -> None:
     _insert_book(memory_db)
     r = client_with_db.post("/api/chat/sessions/99999/message", json={"content": "x"})

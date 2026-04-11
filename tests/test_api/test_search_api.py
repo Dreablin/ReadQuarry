@@ -21,6 +21,52 @@ def isolated_search_data_dir(tmp_path: Path) -> Path:
     return d
 
 
+def test_search_api_b05_semantic_emits_time_tagged_duration(
+    isolated_search_data_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B05: semantic search logs elapsed time with TIME tag (visible in /api/logs)."""
+    monkeypatch.setattr(search_module, "settings", SimpleNamespace(data_dir=isolated_search_data_dir))
+    query_vec = [0.02 * (i % 17) for i in range(384)]
+
+    store = VectorStore(persist_directory=str(isolated_search_data_dir / "chroma"))
+    store.add_documents(
+        collection_name="book_77",
+        ids=["77_0"],
+        embeddings=[query_vec],
+        documents=["b05 time tag doc"],
+        metadatas=[{"book_id": 77, "chunk_index": 0}],
+    )
+
+    class _FixedEmbeddingService:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def embed_text(self, text: str) -> list[float]:
+            return query_vec
+
+    monkeypatch.setattr(search_module, "EmbeddingService", _FixedEmbeddingService)
+    monkeypatch.setattr(
+        search_module,
+        "get_settings",
+        lambda: {
+            "embedding_model": "dummy",
+            "embedding_device": "cpu",
+            "search_score_threshold": 0.0,
+        },
+    )
+
+    tc = TestClient(app)
+    r = tc.post("/api/search/semantic", json={"book_id": 77, "query": "q", "top_k": 3})
+    assert r.status_code == 200
+    body = tc.get("/api/logs").json()
+    hits = [
+        e
+        for e in body["entries"]
+        if e.get("tag") == "TIME" and "[TIME] Semantic search" in e.get("message", "") and "book_id=77" in e.get("message", "")
+    ]
+    assert hits, "expected TIME-tagged semantic search duration log"
+
+
 def test_semantic_search_uses_chroma_not_placeholder(isolated_search_data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """B02: semantic results must come from VectorStore, not hardcoded placeholder text."""
     monkeypatch.setattr(search_module, "settings", SimpleNamespace(data_dir=isolated_search_data_dir))
@@ -86,11 +132,65 @@ def test_search_api_semantic_endpoint() -> None:
     assert isinstance(payload["results"], list)
 
 
+def test_search_api_b05_exact_emits_time_tagged_duration(
+    isolated_search_data_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B05: exact search logs elapsed time with TIME tag."""
+    monkeypatch.setattr(search_module, "settings", SimpleNamespace(data_dir=isolated_search_data_dir))
+
+    class _Eng:
+        def __init__(self, *a: object, **k: object) -> None:
+            pass
+
+        def search(self, *a: object, **k: object) -> list:
+            return []
+
+    monkeypatch.setattr(search_module, "SearchEngine", _Eng)
+    tc = TestClient(app)
+    r = tc.post("/api/search/exact", json={"book_id": 55, "query": "needle", "max_results": 3})
+    assert r.status_code == 200
+    body = tc.get("/api/logs").json()
+    hits = [
+        e
+        for e in body["entries"]
+        if e.get("tag") == "TIME" and "[TIME] Exact search" in e.get("message", "") and "book_id=55" in e.get("message", "")
+    ]
+    assert hits
+
+
 def test_search_api_exact_endpoint() -> None:
     response = client.post("/api/search/exact", json={"book_id": 1, "query": "rabbit", "max_results": 2})
     assert response.status_code == 200
     payload = response.json()
     assert "results" in payload
+
+
+def test_search_api_b05_hybrid_emits_time_tagged_duration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B05: hybrid search logs total elapsed with TIME tag."""
+
+    def _sem(_payload: object) -> dict:
+        return {"results": []}
+
+    def _ex(_payload: object) -> dict:
+        return {"results": []}
+
+    monkeypatch.setattr(search_module, "semantic_search", _sem)
+    monkeypatch.setattr(search_module, "exact_search", _ex)
+    monkeypatch.setattr(search_module, "get_settings", lambda: {"search_score_threshold": 0.0})
+
+    tc = TestClient(app)
+    r = tc.post(
+        "/api/search/hybrid",
+        json={"book_id": 88, "query": "hybridtime", "semantic_k": 2, "exact_k": 2, "final_n": 2},
+    )
+    assert r.status_code == 200
+    body = tc.get("/api/logs").json()
+    hits = [
+        e
+        for e in body["entries"]
+        if e.get("tag") == "TIME" and "[TIME] Hybrid search" in e.get("message", "") and "book_id=88" in e.get("message", "")
+    ]
+    assert hits
 
 
 def test_search_api_hybrid_endpoint() -> None:

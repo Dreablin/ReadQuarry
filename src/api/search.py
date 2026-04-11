@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
 from fastapi import APIRouter
@@ -12,6 +14,8 @@ from src.core.hybrid_search import HybridSearch, filter_rows_by_min_score
 from src.core.search_engine import SearchEngine
 from src.core.vector_store import VectorStore
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
@@ -71,6 +75,7 @@ def _score_threshold_from_settings(app_settings: dict[str, Any]) -> float:
 
 @router.post("/semantic")
 def semantic_search(payload: SemanticSearchRequest) -> dict:
+    t0 = time.perf_counter()
     app_settings = get_settings()
     embedding_service = EmbeddingService(
         model_name=str(app_settings.get("embedding_model") or DEFAULT_EMBEDDING_MODEL),
@@ -83,20 +88,36 @@ def semantic_search(payload: SemanticSearchRequest) -> dict:
     results = _chroma_query_to_results(raw, payload.top_k)
     threshold = _score_threshold_from_settings(app_settings)
     results = filter_rows_by_min_score(results, threshold)
+    elapsed = time.perf_counter() - t0
+    logger.info(
+        "[TIME] Semantic search book_id=%s elapsed=%.3fs",
+        payload.book_id,
+        elapsed,
+        extra={"tag": "TIME"},
+    )
     return {"results": results}
 
 
 @router.post("/exact")
 def exact_search(payload: ExactSearchRequest) -> dict:
+    t0 = time.perf_counter()
     engine = SearchEngine(
         index_dir=str(settings.data_dir / "tantivy_index" / f"book_{payload.book_id}")
     )
     results = engine.search(payload.query, max_results=payload.max_results)
+    elapsed = time.perf_counter() - t0
+    logger.info(
+        "[TIME] Exact search book_id=%s elapsed=%.3fs",
+        payload.book_id,
+        elapsed,
+        extra={"tag": "TIME"},
+    )
     return {"results": results}
 
 
 @router.post("/hybrid")
 def hybrid_search(payload: HybridSearchRequest) -> dict:
+    t0 = time.perf_counter()
     semantic = semantic_search(
         SemanticSearchRequest(book_id=payload.book_id, query=payload.query, top_k=payload.semantic_k)
     )["results"]
@@ -106,4 +127,11 @@ def hybrid_search(payload: HybridSearchRequest) -> dict:
     merged = HybridSearch().merge_results(semantic, exact, final_n=payload.final_n)
     threshold = _score_threshold_from_settings(get_settings())
     merged = filter_rows_by_min_score(merged, threshold)
+    elapsed = time.perf_counter() - t0
+    logger.info(
+        "[TIME] Hybrid search book_id=%s elapsed=%.3fs",
+        payload.book_id,
+        elapsed,
+        extra={"tag": "TIME"},
+    )
     return {"results": merged}
