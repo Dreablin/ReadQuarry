@@ -61,6 +61,14 @@ def test_index_html_logs_view_panel(index_html: str) -> None:
     assert "log-viewer-output" in index_html
 
 
+def test_index_html_logs_b07_tag_filter_bar(index_html: str) -> None:
+    """B07: Logs panel includes tag filter dropdown below the log output."""
+    assert "log-filter" in index_html
+    assert 'id="log-filter-tag"' in index_html
+    assert "Filter by tag:" in index_html
+    assert '<option value="ALL">ALL</option>' in index_html
+
+
 def test_index_html_main_views_use_view_hidden_not_broken_hidden_attr(index_html: str) -> None:
     """B17: Search/Logs panels use .view--hidden (not HTML hidden) so CSS display:flex cannot override."""
     assert 'class="panel panel--search view--hidden"' in index_html
