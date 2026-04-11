@@ -37,16 +37,18 @@ class LLMClient:
     def __init__(self, settings: dict[str, Any], *, timeout: float | None = None) -> None:
         self._settings = settings
         self._mode = settings.get("llm_mode", "ollama")
-        self._timeout = timeout
+        if timeout is not None:
+            self._timeout = float(timeout)
+        else:
+            raw = settings.get("llm_timeout", 300)
+            self._timeout = float(raw if raw is not None else 300)
 
         if self._mode == "ollama":
             base = str(settings.get("ollama_base_url", "http://localhost:11434")).rstrip("/")
             self._ollama_base = base
             self._default_model = settings.get("ollama_model_id", "llama3.2")
         else:
-            client_kwargs: dict[str, Any] = {}
-            if timeout is not None:
-                client_kwargs["timeout"] = timeout
+            client_kwargs: dict[str, Any] = {"timeout": self._timeout}
             api_key = settings.get("api_key") or ""
             base_url = settings.get("api_base_url") or None
             kwargs: dict[str, Any] = {"api_key": api_key, **client_kwargs}
@@ -112,7 +114,7 @@ class LLMClient:
                 "temperature": temperature,
             },
         }
-        timeout = self._timeout or 120.0
+        timeout = self._timeout or float(self._settings.get("llm_timeout", 300))
         url = f"{self._ollama_base}/api/chat"
         logger.info("Ollama request url=%s model=%s", url, model_name)
 
@@ -139,7 +141,7 @@ class LLMClient:
 
     def _validate_ollama_model_exists(self, model_name: str) -> None:
         """Best-effort model availability check for clearer errors."""
-        timeout = min(float(self._timeout or 120.0), 10.0)
+        timeout = min(float(self._timeout or self._settings.get("llm_timeout", 300)), 10.0)
         tags_url = f"{self._ollama_base}/api/tags"
         try:
             resp = httpx.get(tags_url, timeout=timeout)

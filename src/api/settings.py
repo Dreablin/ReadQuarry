@@ -34,6 +34,7 @@ DEFAULTS: dict[str, object] = {
     "model_id": "gpt-4o",
     "max_tokens": 2048,
     "temperature": 0.3,
+    "llm_timeout": 300,
     "embedding_model": DEFAULT_EMBEDDING_MODEL,
     "embedding_device": "cpu",
     "semantic_top_k": 5,
@@ -88,6 +89,7 @@ class SettingsUpdate(BaseModel):
     model_id: str | None = None
     max_tokens: int | None = Field(default=None, gt=0)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    llm_timeout: int | None = Field(default=None, gt=0, le=600)
 
     embedding_model: str | None = None
     embedding_device: str | None = Field(default=None, pattern="^(cpu|cuda)$")
