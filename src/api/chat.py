@@ -25,6 +25,10 @@ from src.models.chunk import Chunk
 
 logger = logging.getLogger(__name__)
 
+# Ring-buffer friendly caps for LLM-tagged diagnostic logs (BUGS.md B06).
+_LLM_LOG_PROMPT_MAX_CHARS = 5000
+_LLM_LOG_RESPONSE_MAX_CHARS = 2000
+
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
@@ -191,6 +195,19 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
 
     llm = LLMClient(dict(app_settings))
 
+    prompt_text = "\n---\n".join(f"[{m['role']}]\n{m['content']}" for m in messages)
+    prompt_for_log = (
+        prompt_text
+        if len(prompt_text) <= _LLM_LOG_PROMPT_MAX_CHARS
+        else prompt_text[:_LLM_LOG_PROMPT_MAX_CHARS] + "\n...(truncated)"
+    )
+    logger.info(
+        "[LLM] Full prompt for session_id=%s:\n%s",
+        session_id,
+        prompt_for_log,
+        extra={"tag": "LLM"},
+    )
+
     total_ctx_len = sum(len(m.get("content", "")) for m in messages)
     logger.info(
         "LLM request session_id=%s messages=%d context_chars=%d",
@@ -233,11 +250,14 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
                 raw_len,
             )
             content = "[Empty block returned from LLM]"
-        else:
-            logger.info(
-                "LLM response session_id=%s chars=%d",
-                session_id, len(content),
-            )
+
+        logger.info(
+            "[LLM] Response for session_id=%s (%d chars):\n%s",
+            session_id,
+            len(content),
+            content[:_LLM_LOG_RESPONSE_MAX_CHARS],
+            extra={"tag": "LLM"},
+        )
 
         yield _sse_payload({"type": "delta", "content": content})
     except Exception as exc:
