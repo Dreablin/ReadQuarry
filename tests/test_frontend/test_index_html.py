@@ -84,6 +84,13 @@ def test_index_html_chat_composer_and_messages(index_html: str) -> None:
     assert "send" in index_html.lower()
 
 
+def test_index_html_clear_chat_button(index_html: str) -> None:
+    """B07: Clear Chat control in discussion panel."""
+    assert 'id="clear-chat"' in index_html
+    assert 'class="btn-clear"' in index_html or "btn-clear" in index_html
+    assert "Clear Chat" in index_html
+
+
 def test_index_html_references_clear(index_html: str) -> None:
     assert "references-list" in index_html
     assert "clear-references" in index_html or 'id="clear-references"' in index_html
@@ -98,6 +105,18 @@ def test_index_html_upload_dialog_sections(index_html: str) -> None:
     assert "upload-dropzone" in index_html
     assert "chunking-strategy" in index_html
     assert "upload-progress" in index_html
+
+
+def test_index_html_upload_b01_fe_stage_line(index_html: str) -> None:
+    """B01-FE: visible line for ingestion stage / detail text during upload."""
+    assert 'id="upload-stage"' in index_html
+
+
+def test_index_html_upload_fixed_size_chunk_options(index_html: str) -> None:
+    """B06: conditional fixed-size chunk size and overlap fields."""
+    assert 'id="upload-fixed-size-options"' in index_html
+    assert 'id="upload-chunk-size"' in index_html
+    assert 'id="upload-overlap-ratio"' in index_html
 
 
 def test_index_html_upload_feedback_for_errors(index_html: str) -> None:
@@ -135,6 +154,19 @@ def test_index_html_settings_tabs_llm_and_embeddings(index_html: str) -> None:
     assert "role=\"tablist\"" in index_html
     assert "role=\"tab\"" in index_html
     assert "role=\"tabpanel\"" in index_html
+
+
+def test_index_html_settings_b03b_prompts_tab(index_html: str) -> None:
+    """B03b: Prompts tab with system prompt textarea wired to settings API key."""
+    assert 'id="settings-tab-prompts"' in index_html
+    assert 'id="settings-panel-prompts"' in index_html
+    assert "settings-panel-prompts" in index_html
+    assert 'aria-controls="settings-panel-prompts"' in index_html
+    assert 'aria-labelledby="settings-tab-prompts"' in index_html
+    assert 'id="settings-system_prompt"' in index_html
+    assert 'name="system_prompt"' in index_html
+    assert "System prompt (Discussion)" in index_html
+    assert "<textarea" in index_html and "settings-system_prompt" in index_html
 
 
 def test_index_html_settings_search_score_threshold(index_html: str) -> None:

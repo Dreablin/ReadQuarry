@@ -37,8 +37,14 @@ class SentenceChunking(ChunkingStrategy):
         self.overlap = max(0, overlap)
 
     def chunk(self, text: str, metadata: dict) -> list[dict]:
-        # Latin and Cyrillic sentences: . ! ? and Unicode ellipsis (…).
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?…])\s+", text.strip()) if s.strip()]
+        # Split on paragraph boundaries first (BUGS.md B05): `\n\n` separates blocks even
+        # when the prior block ends without `.`/`!`/`?`/`…`, then split each block on
+        # Latin/Cyrillic sentence punctuation followed by whitespace.
+        paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+        sentences: list[str] = []
+        for para in paragraphs:
+            parts = [s.strip() for s in re.split(r"(?<=[.!?…])\s+", para) if s.strip()]
+            sentences.extend(parts)
         chunks: list[dict] = []
         for i, sentence in enumerate(sentences):
             chunk_text = sentence

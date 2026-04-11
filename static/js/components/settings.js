@@ -28,7 +28,10 @@ const FIELD_KEYS = [
   "exact_results",
   "final_context_chunks",
   "search_score_threshold",
+  "system_prompt",
 ];
+
+/** B03b: textarea `#settings-system_prompt` uses key `system_prompt` above. */
 
 /**
  * @param {string} key
@@ -38,20 +41,27 @@ function fieldId(key) {
   return `settings-${key}`;
 }
 
-/** @param {"llm" | "embeddings"} which */
+/** @param {"llm" | "embeddings" | "prompts"} which */
 function activateSettingsTab(which) {
   const llmPanel = document.getElementById("settings-panel-llm");
   const embPanel = document.getElementById("settings-panel-embeddings");
+  const prPanel = document.getElementById("settings-panel-prompts");
   const tabLlm = document.getElementById("settings-tab-llm");
   const tabEmb = document.getElementById("settings-tab-embeddings");
-  if (!llmPanel || !embPanel || !tabLlm || !tabEmb) return;
+  const tabPr = document.getElementById("settings-tab-prompts");
+  if (!llmPanel || !embPanel || !prPanel || !tabLlm || !tabEmb || !tabPr) return;
   const llmActive = which === "llm";
+  const embActive = which === "embeddings";
+  const prActive = which === "prompts";
   llmPanel.classList.toggle("settings-tab-panel--hidden", !llmActive);
-  embPanel.classList.toggle("settings-tab-panel--hidden", llmActive);
+  embPanel.classList.toggle("settings-tab-panel--hidden", !embActive);
+  prPanel.classList.toggle("settings-tab-panel--hidden", !prActive);
   tabLlm.setAttribute("aria-selected", String(llmActive));
-  tabEmb.setAttribute("aria-selected", String(!llmActive));
+  tabEmb.setAttribute("aria-selected", String(embActive));
+  tabPr.setAttribute("aria-selected", String(prActive));
   tabLlm.classList.toggle("settings-tab--active", llmActive);
-  tabEmb.classList.toggle("settings-tab--active", !llmActive);
+  tabEmb.classList.toggle("settings-tab--active", embActive);
+  tabPr.classList.toggle("settings-tab--active", prActive);
 }
 
 /** Show Ollama or Cloud LLM field group based on `settings-llm_mode` (CSS display, no DOM removal). */
@@ -147,11 +157,15 @@ export function initSettings(options = {}) {
 
   const tabLlmBtn = document.getElementById("settings-tab-llm");
   const tabEmbBtn = document.getElementById("settings-tab-embeddings");
+  const tabPrBtn = document.getElementById("settings-tab-prompts");
   if (tabLlmBtn) {
     tabLlmBtn.addEventListener("click", () => activateSettingsTab("llm"));
   }
   if (tabEmbBtn) {
     tabEmbBtn.addEventListener("click", () => activateSettingsTab("embeddings"));
+  }
+  if (tabPrBtn) {
+    tabPrBtn.addEventListener("click", () => activateSettingsTab("prompts"));
   }
   activateSettingsTab("llm");
 

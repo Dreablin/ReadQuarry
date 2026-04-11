@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -42,15 +44,25 @@ def _book_to_response(book: Book) -> dict:
     }
 
 
+def _upload_sse_line(payload: dict) -> str:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
 @router.post("/upload")
 async def upload_book(
     file: UploadFile = File(...),
     chunking_strategy: str = Form("paragraph"),
+    chunk_size: int | None = Form(default=None),
+    overlap_ratio: float | None = Form(default=None),
     db: Session = Depends(get_db),
-) -> dict:
+) -> StreamingResponse:
     allowed_strategies = {"paragraph", "sentence", "fixed-size", "chapter-aware-recursive"}
     if chunking_strategy not in allowed_strategies:
         raise HTTPException(status_code=400, detail="Unsupported chunking strategy")
+    if chunk_size is not None and (chunk_size < 50 or chunk_size > 2000):
+        raise HTTPException(status_code=400, detail="chunk_size must be between 50 and 2000")
+    if overlap_ratio is not None and (overlap_ratio < 0.0 or overlap_ratio > 0.5):
+        raise HTTPException(status_code=400, detail="overlap_ratio must be between 0 and 0.5")
     if not file.filename or not file.filename.lower().endswith(".epub"):
         raise HTTPException(status_code=400, detail="Only EPUB files are supported")
 
@@ -113,28 +125,57 @@ async def upload_book(
             index_dir=str(settings.data_dir / "tantivy_index" / f"book_{book_id}")
         ),
     )
-    try:
-        result = processor.process_book(str(destination), book_id, chunking_strategy, db=db)
-        logger.info(
-            "Upload pipeline succeeded book_id=%s total_chunks=%s title=%r",
-            book_id,
-            result.get("total_chunks"),
-            result.get("book_title"),
-        )
-    except Exception:
-        logger.exception("Book processing failed for book_id=%s", book_id)
-        destination.unlink(missing_ok=True)
-        db.delete(book)
-        db.commit()
-        raise HTTPException(status_code=422, detail="Failed to process EPUB file") from None
 
-    book.title = result.get("book_title") or book.title
-    book.author = result.get("book_author")
-    book.total_chunks = result.get("total_chunks")
-    db.add(book)
-    db.commit()
-    db.refresh(book)
-    return _book_to_response(book)
+    def sse_upload_events():  # type: ignore[no-untyped-def]
+        try:
+            ingestion = processor.iter_ingestion(
+                str(destination),
+                book_id,
+                chunking_strategy,
+                db=db,
+                chunk_size=chunk_size,
+                overlap_ratio=overlap_ratio,
+            )
+            result: dict | None = None
+            while True:
+                try:
+                    stage, prog, detail = next(ingestion)
+                    payload: dict = {"stage": stage, "progress": prog}
+                    if detail:
+                        payload["detail"] = detail
+                    yield _upload_sse_line(payload)
+                except StopIteration as ex:
+                    result = ex.value
+                    break
+            if result is None:
+                raise RuntimeError("ingestion finished without result")
+            book.title = result.get("book_title") or book.title
+            book.author = result.get("book_author")
+            book.total_chunks = result.get("total_chunks")
+            db.add(book)
+            db.commit()
+            db.refresh(book)
+            logger.info(
+                "Upload pipeline succeeded book_id=%s total_chunks=%s title=%r",
+                book_id,
+                result.get("total_chunks"),
+                result.get("book_title"),
+            )
+            done_payload = {"stage": "done", "progress": 100, "book": _book_to_response(book)}
+            yield _upload_sse_line(done_payload)
+        except Exception:
+            logger.exception("Book processing failed for book_id=%s", book_id)
+            destination.unlink(missing_ok=True)
+            db.delete(book)
+            db.commit()
+            yield _upload_sse_line(
+                {"stage": "error", "message": "Failed to process EPUB file"},
+            )
+
+    return StreamingResponse(
+        sse_upload_events(),
+        media_type="text/event-stream; charset=utf-8",
+    )
 
 
 @router.get("")
@@ -154,7 +195,7 @@ def delete_all_books(db: Session = Depends(get_db)) -> dict:
         destination = uploads_dir / f"{book.id}_{book.file_name}"
         destination.unlink(missing_ok=True)
         vs.delete_collection(f"book_{book.id}")
-        shutil.rmtree(settings.data_dir / "tantivy_index" / f"book_{book.id}", ignore_errors=True)
+        SearchEngine(index_dir=str(settings.data_dir / "tantivy_index" / f"book_{book.id}")).delete_index()
     if count:
         db.execute(delete(Book))
         db.commit()
@@ -204,7 +245,7 @@ def delete_book(book_id: int, db: Session = Depends(get_db)) -> dict:
 
     VectorStore(persist_directory=str(settings.data_dir / "chroma")).delete_collection(f"book_{book_id}")
     index_dir = settings.data_dir / "tantivy_index" / f"book_{book_id}"
-    shutil.rmtree(index_dir, ignore_errors=True)
+    SearchEngine(index_dir=str(index_dir)).delete_index()
 
     db.delete(book)
     db.commit()

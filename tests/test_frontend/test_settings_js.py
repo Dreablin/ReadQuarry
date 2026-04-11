@@ -55,6 +55,15 @@ def test_settings_js_tab_panel_activation(settings_js: str) -> None:
     assert "activateSettingsTab" in settings_js
 
 
+def test_settings_js_b03b_prompts_tab_and_system_prompt_field(settings_js: str) -> None:
+    """B03b: Prompts tab + system_prompt in FIELD_KEYS for load/save with /api/settings."""
+    assert "settings-tab-prompts" in settings_js
+    assert "settings-panel-prompts" in settings_js
+    assert '"system_prompt"' in settings_js or "'system_prompt'" in settings_js
+    assert "settings-system_prompt" in settings_js
+    assert "prompts" in settings_js
+
+
 def test_settings_js_cloud_security_warning_id(settings_js: str) -> None:
     """B08: LLM visibility sync updates the cloud storage warning element."""
     assert "settings-cloud-security-warning" in settings_js

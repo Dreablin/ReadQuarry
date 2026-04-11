@@ -2,11 +2,7 @@
  * Application controller: wires book list, upload, chat, references, settings, and search view.
  */
 
-import {
-  createChatSession,
-  listChatSessions,
-  searchHybrid,
-} from "./api.js";
+import { createChatSession, searchHybrid } from "./api.js";
 import { initBookList } from "./components/book-list.js";
 import { initBookUpload } from "./components/book-upload.js";
 import { initChat } from "./components/chat.js";
@@ -46,20 +42,6 @@ function highlightFragment(text, query) {
     }
   }
   return frag;
-}
-
-/**
- * @param {number} bookId
- * @returns {Promise<number>}
- */
-async function ensureSession(bookId) {
-  const raw = await listChatSessions(bookId);
-  const list = Array.isArray(raw) ? raw : [];
-  if (list.length > 0 && list[0].id != null) {
-    return Number(list[0].id);
-  }
-  const s = await createChatSession({ book_id: bookId });
-  return Number(s.id);
 }
 
 /**
@@ -215,7 +197,8 @@ export async function initApp() {
       }
       try {
         setStatus("Loading…");
-        sessionId = await ensureSession(bookId);
+        const session = await createChatSession({ book_id: bookId });
+        sessionId = Number(session.id);
         await chatApi.loadHistory(sessionId);
         setStatus("Ready");
       } catch (e) {
@@ -227,6 +210,23 @@ export async function initApp() {
   });
 
   bookListRef = bookList;
+
+  document.getElementById("clear-chat")?.addEventListener("click", async () => {
+    const bookId = bookList.getSelectedBookId();
+    if (bookId == null) {
+      return;
+    }
+    try {
+      setStatus("Loading…");
+      const session = await createChatSession({ book_id: bookId });
+      sessionId = Number(session.id);
+      chatApi.clearMessages();
+      refs.clear();
+      setStatus("New conversation started");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Could not start new chat");
+    }
+  });
 
   initSettings({
     onAfterClearAllBooks: async () => {

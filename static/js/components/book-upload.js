@@ -51,6 +51,22 @@ function setProgress(value, bar, container) {
 }
 
 /**
+ * @param {{ stage: string, progress: number, detail?: string }} ev
+ * @returns {string}
+ */
+function formatUploadStageLine(ev) {
+  if (ev.detail) return ev.detail;
+  const map = {
+    parsing: "Parsing book…",
+    chunking: "Chunking text…",
+    embedding: "Embedding chunks…",
+    indexing: "Indexing search…",
+    done: "Finishing…",
+  };
+  return map[ev.stage] || ev.stage || "";
+}
+
+/**
  * @param {object} [options]
  * @param {Record<string, string>} [options.ids] element id overrides
  * @param {(result: unknown) => void} [options.onSuccess]
@@ -65,6 +81,10 @@ export function initBookUpload(options = {}) {
   const dropzone = requireEl("dropzone", document.getElementById(ids.dropzone));
   const fileInput = /** @type {HTMLInputElement} */ (requireEl("fileInput", document.getElementById(ids.fileInput)));
   const chunkSelect = /** @type {HTMLSelectElement} */ (requireEl("chunkSelect", document.getElementById(ids.chunkSelect)));
+  const fixedSizeOptions = document.getElementById("upload-fixed-size-options");
+  const chunkSizeInput = /** @type {HTMLInputElement | null} */ (document.getElementById("upload-chunk-size"));
+  const overlapRatioInput = /** @type {HTMLInputElement | null} */ (document.getElementById("upload-overlap-ratio"));
+  const stageEl = /** @type {HTMLParagraphElement | null} */ (document.getElementById("upload-stage"));
   const feedbackEl = /** @type {HTMLParagraphElement} */ (
     requireEl("feedback", document.getElementById(ids.feedback))
   );
@@ -79,29 +99,13 @@ export function initBookUpload(options = {}) {
 
   /** @type {File | null} */
   let selectedFile = null;
-  /** @type {ReturnType<typeof setInterval> | null} */
-  let progressTimer = null;
-
-  function stopProgressAnimation() {
-    if (progressTimer !== null) {
-      clearInterval(progressTimer);
-      progressTimer = null;
-    }
-  }
-
-  function startProgressAnimation() {
-    stopProgressAnimation();
-    let v = 5;
-    setProgress(v, progressBar, progressContainer);
-    progressTimer = setInterval(() => {
-      v = Math.min(92, v + Math.random() * 12);
-      setProgress(v, progressBar, progressContainer);
-    }, 220);
-  }
 
   function resetProgress() {
-    stopProgressAnimation();
     setProgress(0, progressBar, progressContainer);
+    if (stageEl) {
+      stageEl.textContent = "";
+      stageEl.hidden = true;
+    }
   }
 
   function clearUploadFeedback() {
@@ -173,6 +177,15 @@ export function initBookUpload(options = {}) {
     if (f) pickFile(f);
   });
 
+  function syncFixedSizeOptionsVisibility() {
+    if (!fixedSizeOptions) return;
+    const show = chunkSelect.value === "fixed-size";
+    fixedSizeOptions.hidden = !show;
+  }
+
+  chunkSelect.addEventListener("change", syncFixedSizeOptionsVisibility);
+  syncFixedSizeOptionsVisibility();
+
   dropzone.addEventListener("dragenter", (e) => {
     e.preventDefault();
     dropzone.classList.add("upload-dropzone--active");
@@ -210,11 +223,29 @@ export function initBookUpload(options = {}) {
     const strategy = chunkSelect.value;
     clearUploadFeedback();
     setBusy(true);
-    startProgressAnimation();
+    resetProgress();
+    setProgress(0, progressBar, progressContainer);
 
     try {
-      const result = await uploadBook(selectedFile, strategy);
-      stopProgressAnimation();
+      /** B06: extras.chunkSize / extras.overlapRatio → FormData chunk_size / overlap_ratio in api.js */
+      /** @type {{ chunkSize?: number, overlapRatio?: number }} */
+      const extras = {};
+      if (strategy === "fixed-size" && chunkSizeInput && overlapRatioInput) {
+        const cs = parseInt(String(chunkSizeInput.value), 10);
+        const orv = parseFloat(String(overlapRatioInput.value));
+        if (Number.isFinite(cs)) extras.chunkSize = cs;
+        if (Number.isFinite(orv)) extras.overlapRatio = orv;
+      }
+      const result = await uploadBook(selectedFile, strategy, extras, {
+        onProgress: (ev) => {
+          setProgress(ev.progress, progressBar, progressContainer);
+          if (stageEl) {
+            const line = formatUploadStageLine(ev);
+            stageEl.textContent = line;
+            stageEl.hidden = !line;
+          }
+        },
+      });
       setProgress(100, progressBar, progressContainer);
       clearUploadFeedback();
       if (options.onSuccess) options.onSuccess(result);
@@ -226,7 +257,6 @@ export function initBookUpload(options = {}) {
         p.textContent = "Drag and drop an EPUB here, or click to browse.";
       }
     } catch (err) {
-      stopProgressAnimation();
       resetProgress();
       const error = err instanceof Error ? err : new Error(String(err));
       showUploadError(error.message);

@@ -63,6 +63,33 @@ class DummySearchEngine:
         self.indexed = docs
 
 
+def test_book_processor_b06_fixed_size_respects_chunk_size_and_overlap() -> None:
+    """B06: custom chunk_size / overlap_ratio change fixed-size chunk count vs defaults."""
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    small = processor.process_book(
+        file_path="book.epub",
+        book_id=1,
+        chunking_strategy="fixed-size",
+        chunk_size=3,
+        overlap_ratio=0.0,
+    )
+    large = processor.process_book(
+        file_path="book.epub",
+        book_id=2,
+        chunking_strategy="fixed-size",
+        chunk_size=256,
+        overlap_ratio=0.15,
+    )
+    assert small["total_chunks"] > large["total_chunks"]
+
+
 def test_book_processor_logs_ingestion_pipeline_stages(caplog: pytest.LogCaptureFixture) -> None:
     """B11: ingestion logs parser, chapters, chunks, ChromaDB, SearchEngine index, timing."""
     caplog.set_level(logging.INFO, logger="src.core.book_processor")
