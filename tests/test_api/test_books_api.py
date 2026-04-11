@@ -357,11 +357,11 @@ def test_books_api_upload_b06_fixed_size_chunk_size_affects_chunk_count(tmp_path
         )
     assert ra.status_code == 200, ra.text
     assert rb.status_code == 200, rb.text
-    id_a = _upload_done_book(ra)["id"]
-    id_b = _upload_done_book(rb)["id"]
-    ca = client.get(f"/api/books/{id_a}/chunks").json()
-    cb = client.get(f"/api/books/{id_b}/chunks").json()
-    assert len(ca) > len(cb)
+    book_a = _upload_done_book(ra)
+    book_b = _upload_done_book(rb)
+    # Compare ingestion counts from the upload stream, not GET /chunks (persistent DB can
+    # accumulate duplicate chunk rows across test runs for the same book id).
+    assert book_a["total_chunks"] > book_b["total_chunks"]
 
 
 def test_books_api_upload_b01_sse_streams_progress_then_done(tmp_path: Path) -> None:

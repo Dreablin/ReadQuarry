@@ -7,9 +7,9 @@
 ## Current Status
 
 **Phase**: 10 — Bug Fixes (Round 5)
-**Next Task**: B02
-**Last Completed**: B01
-**Total Progress**: 1 / 9 tasks
+**Next Task**: B03
+**Last Completed**: B02
+**Total Progress**: 2 / 9 tasks
 
 ---
 
@@ -18,7 +18,7 @@
 ### Phase 10: Bug Fixes (Round 5)
 
 - [x] **B01**: Clear references before each new AI response — call `refs.clear()` before `appendReferencedChunkIds` — see BUGS.md B01
-- [ ] **B02**: Save chunks to `data/book_load_chunks.txt` during ingestion — see BUGS.md B02
+- [x] **B02**: Save chunks to `data/book_load_chunks.txt` during ingestion — see BUGS.md B02
 - [ ] **B03**: Add `llm_timeout` setting (default 300s) and wire to LLMClient — see BUGS.md B03
 - [ ] **B04**: Add tag system to log entries (INFO, TIME, LLM) — update `RingBufferHandler` and API — see BUGS.md B04
 - [ ] **B05**: Add duration logging with TIME tag for search, chat, embedding operations — see BUGS.md B05 (depends on B04)
@@ -34,6 +34,7 @@
 | Date | Task | Decision | Rationale |
 |------|------|----------|-----------|
 | 2026-04-10 | B01 | Structural test parses `onDone` arrow callback body and asserts `refs.clear()` before `appendReferencedChunkIds`. | Keeps B01 covered without a browser harness; matches BUGS.md ordering requirement. |
+| 2026-04-10 | B02 | `GET`/`SSE` book payloads include `total_chunks`; B06 API test compares upload `done` book counts instead of `GET /chunks` length. | Chunk rows can accumulate in the dev SQLite DB across runs; `total_chunks` reflects the current ingestion. |
 
 ---
 

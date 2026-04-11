@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Generator
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
+
+from config import settings
 
 from src.core.chunking import (
     ChapterAwareRecursiveChunking,
@@ -120,6 +123,18 @@ class BookProcessor:
             chunker_name,
             len(chunks),
         )
+        chunks_file = Path(settings.data_dir) / "book_load_chunks.txt"
+        chunks_file.parent.mkdir(parents=True, exist_ok=True)
+        if chunks_file.exists():
+            chunks_file.unlink()
+        if chunks:
+            with chunks_file.open("w", encoding="utf-8") as out:
+                for chunk in chunks:
+                    out.write(chunk["text"])
+                    out.write("\n")
+                    out.write("--------------")
+                    out.write("\n")
+        logger.info("Saved %d chunks to %s", len(chunks), chunks_file)
         yield BookProcessor._emit_progress(on_progress, "chunking", 30, None)
 
         texts = [c["text"] for c in chunks]
