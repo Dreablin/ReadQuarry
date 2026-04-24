@@ -41,6 +41,7 @@ def _book_to_response(book: Book) -> dict:
         "file_name": book.file_name,
         "chunking_strategy": book.chunking_strategy,
         "upload_date": book.upload_date.isoformat() if book.upload_date else "",
+        "total_chunks": book.total_chunks,
     }
 
 

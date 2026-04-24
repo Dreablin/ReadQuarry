@@ -61,6 +61,14 @@ def test_index_html_logs_view_panel(index_html: str) -> None:
     assert "log-viewer-output" in index_html
 
 
+def test_index_html_logs_b07_tag_filter_bar(index_html: str) -> None:
+    """B07: Logs panel includes tag filter dropdown below the log output."""
+    assert "log-filter" in index_html
+    assert 'id="log-filter-tag"' in index_html
+    assert "Filter by tag:" in index_html
+    assert '<option value="ALL">ALL</option>' in index_html
+
+
 def test_index_html_main_views_use_view_hidden_not_broken_hidden_attr(index_html: str) -> None:
     """B17: Search/Logs panels use .view--hidden (not HTML hidden) so CSS display:flex cannot override."""
     assert 'class="panel panel--search view--hidden"' in index_html
@@ -194,6 +202,17 @@ def test_index_html_settings_llm_ollama_cloud_groups(index_html: str) -> None:
     assert "settings-api_key" in index_html
     assert "settings-api_base_url" in index_html
     assert "settings-model_id" in index_html
+
+
+def test_index_html_settings_b03fe_llm_timeout(index_html: str) -> None:
+    """B03-FE: Shared LLM section includes configurable timeout (Ollama and Cloud)."""
+    assert 'id="settings-llm_timeout"' in index_html
+    assert 'name="llm_timeout"' in index_html
+    assert "LLM timeout (seconds)" in index_html
+    assert 'min="10"' in index_html
+    assert 'max="600"' in index_html
+    assert 'step="10"' in index_html
+    assert "settings-llm-shared" in index_html
 
 
 def test_index_html_search_view_and_app_module(index_html: str) -> None:

@@ -107,6 +107,60 @@ def test_llm_client_ollama_raises_clear_error_when_model_missing() -> None:
     mock_post.assert_not_called()
 
 
+def test_llm_client_b03_ollama_post_uses_default_timeout_when_omitted_from_settings() -> None:
+    """B03: Ollama httpx.post timeout defaults to 300s when llm_timeout not in settings dict."""
+    from src.core.llm_client import LLMClient
+
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.status_code = 200
+    resp.json.return_value = {"message": {"content": "ok"}}
+    with patch("src.core.llm_client.httpx.get") as mock_get, patch(
+        "src.core.llm_client.httpx.post", return_value=resp
+    ) as mock_post:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {"models": [{"name": "llama3.2"}]}
+        client = LLMClient(settings={"llm_mode": "ollama"})
+        client.chat_completion([{"role": "user", "content": "Hello"}])
+    assert mock_post.call_args.kwargs["timeout"] == 300.0
+
+
+def test_llm_client_b03_ollama_post_uses_llm_timeout_from_settings() -> None:
+    """B03: Ollama request uses configured llm_timeout from settings."""
+    from src.core.llm_client import LLMClient
+
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.status_code = 200
+    resp.json.return_value = {"message": {"content": "ok"}}
+    with patch("src.core.llm_client.httpx.get") as mock_get, patch(
+        "src.core.llm_client.httpx.post", return_value=resp
+    ) as mock_post:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {"models": [{"name": "llama3.2"}]}
+        client = LLMClient(settings={"llm_mode": "ollama", "llm_timeout": 180})
+        client.chat_completion([{"role": "user", "content": "Hello"}])
+    assert mock_post.call_args.kwargs["timeout"] == 180.0
+
+
+def test_llm_client_b03_explicit_timeout_kwarg_overrides_settings() -> None:
+    """B03: LLMClient(..., timeout=12) overrides llm_timeout in settings for Ollama HTTP."""
+    from src.core.llm_client import LLMClient
+
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.status_code = 200
+    resp.json.return_value = {"message": {"content": "ok"}}
+    with patch("src.core.llm_client.httpx.get") as mock_get, patch(
+        "src.core.llm_client.httpx.post", return_value=resp
+    ) as mock_post:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {"models": [{"name": "llama3.2"}]}
+        client = LLMClient(settings={"llm_mode": "ollama", "llm_timeout": 300}, timeout=12.0)
+        client.chat_completion([{"role": "user", "content": "Hello"}])
+    assert mock_post.call_args.kwargs["timeout"] == 12.0
+
+
 def test_llm_client_ollama_logs_raw_response_payload(caplog: pytest.LogCaptureFixture) -> None:
     from src.core.llm_client import LLMClient
 

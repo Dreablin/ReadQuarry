@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Any, Iterator
 
@@ -23,6 +24,10 @@ from src.models.chat import ChatMessage, ChatSession
 from src.models.chunk import Chunk
 
 logger = logging.getLogger(__name__)
+
+# Ring-buffer friendly caps for LLM-tagged diagnostic logs (BUGS.md B06).
+_LLM_LOG_PROMPT_MAX_CHARS = 5000
+_LLM_LOG_RESPONSE_MAX_CHARS = 2000
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -56,11 +61,19 @@ def _build_context_chunks(
         model_name=str(app_settings.get("embedding_model") or DEFAULT_EMBEDDING_MODEL),
         device=str(app_settings.get("embedding_device") or "cpu"),
     )
+    t_embed = time.perf_counter()
     query_vector = embedder.embed_text(query)
+    logger.info(
+        "[TIME] Chat RAG query embedding book_id=%s elapsed=%.3fs",
+        book_id,
+        time.perf_counter() - t_embed,
+        extra={"tag": "TIME"},
+    )
 
     vs = VectorStore(persist_directory=str(app_config.data_dir / "chroma"))
     collection_name = f"book_{book_id}"
     semantic_results: list[dict[str, Any]] = []
+    t_chroma = time.perf_counter()
     try:
         raw = vs.query(collection_name=collection_name, query_embedding=query_vector, n_results=semantic_k)
         ids = raw.get("ids", [[]])[0] if raw.get("ids") else []
@@ -80,9 +93,16 @@ def _build_context_chunks(
             semantic_results.append({"chunk_id": str(chunk_id_int), "text": row.text, "score": score})
     except Exception:
         logger.exception("Semantic retrieval failed for book_id=%s", book_id)
+    logger.info(
+        "[TIME] Chat RAG Chroma query book_id=%s elapsed=%.3fs",
+        book_id,
+        time.perf_counter() - t_chroma,
+        extra={"tag": "TIME"},
+    )
 
     index_dir = str(app_config.data_dir / "tantivy_index" / f"book_{book_id}")
     engine = SearchEngine(index_dir=index_dir)
+    t_exact = time.perf_counter()
     exact_raw = engine.search(query, max_results=exact_k)
     exact_results: list[dict[str, Any]] = []
     for doc in exact_raw:
@@ -94,7 +114,14 @@ def _build_context_chunks(
         if row is None or row.book_id != book_id:
             continue
         exact_results.append({"chunk_id": str(cid), "text": row.text, "score": 1.0})
+    logger.info(
+        "[TIME] Chat RAG exact search book_id=%s elapsed=%.3fs",
+        book_id,
+        time.perf_counter() - t_exact,
+        extra={"tag": "TIME"},
+    )
 
+    t_merge = time.perf_counter()
     merged = HybridSearch().merge_results(semantic_results, exact_results, final_n=final_n)
     try:
         thr = float(app_settings.get("search_score_threshold", 0.6))
@@ -114,6 +141,12 @@ def _build_context_chunks(
         chunk_row = db.get(Chunk, cid)
         text = chunk_row.text if chunk_row else str(row.get("text", ""))
         lines.append(f"[{i}] (chunk {cid}) {text}")
+    logger.info(
+        "[TIME] Chat RAG hybrid merge book_id=%s elapsed=%.3fs",
+        book_id,
+        time.perf_counter() - t_merge,
+        extra={"tag": "TIME"},
+    )
     return "\n\n".join(lines), chunk_ids_ordered, chunk_scores_ordered
 
 
@@ -131,6 +164,7 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
         yield _sse_payload({"type": "error", "message": "Session not found"})
         return
 
+    pipeline_t0 = time.perf_counter()
     app_settings = get_settings()
     book_id = session_row.book_id
 
@@ -138,7 +172,14 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     db.add(user_msg)
     db.commit()
 
+    ctx_t0 = time.perf_counter()
     context_text, ref_chunk_ids, ref_chunk_scores = _build_context_chunks(db, book_id, user_text, app_settings)
+    logger.info(
+        "[TIME] Chat context build session_id=%s elapsed=%.3fs",
+        session_id,
+        time.perf_counter() - ctx_t0,
+        extra={"tag": "TIME"},
+    )
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": _system_prompt(app_settings)},
@@ -154,12 +195,26 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
 
     llm = LLMClient(dict(app_settings))
 
+    prompt_text = "\n---\n".join(f"[{m['role']}]\n{m['content']}" for m in messages)
+    prompt_for_log = (
+        prompt_text
+        if len(prompt_text) <= _LLM_LOG_PROMPT_MAX_CHARS
+        else prompt_text[:_LLM_LOG_PROMPT_MAX_CHARS] + "\n...(truncated)"
+    )
+    logger.info(
+        "[LLM] Full prompt for session_id=%s:\n%s",
+        session_id,
+        prompt_for_log,
+        extra={"tag": "LLM"},
+    )
+
     total_ctx_len = sum(len(m.get("content", "")) for m in messages)
     logger.info(
         "LLM request session_id=%s messages=%d context_chars=%d",
         session_id, len(messages), total_ctx_len,
     )
 
+    llm_t0 = time.perf_counter()
     try:
         response = llm.chat_completion(messages, stream=False)
         content = ""
@@ -195,17 +250,39 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
                 raw_len,
             )
             content = "[Empty block returned from LLM]"
-        else:
-            logger.info(
-                "LLM response session_id=%s chars=%d",
-                session_id, len(content),
-            )
+
+        logger.info(
+            "[LLM] Response for session_id=%s (%d chars):\n%s",
+            session_id,
+            len(content),
+            content[:_LLM_LOG_RESPONSE_MAX_CHARS],
+            extra={"tag": "LLM"},
+        )
 
         yield _sse_payload({"type": "delta", "content": content})
     except Exception as exc:
+        logger.info(
+            "[TIME] Chat LLM completion session_id=%s elapsed=%.3fs",
+            session_id,
+            time.perf_counter() - llm_t0,
+            extra={"tag": "TIME"},
+        )
         logger.exception("LLM request failed for session_id=%s", session_id)
+        logger.info(
+            "[TIME] Chat pipeline session_id=%s elapsed=%.3fs",
+            session_id,
+            time.perf_counter() - pipeline_t0,
+            extra={"tag": "TIME"},
+        )
         yield _sse_payload({"type": "error", "message": str(exc)})
         return
+
+    logger.info(
+        "[TIME] Chat LLM completion session_id=%s elapsed=%.3fs",
+        session_id,
+        time.perf_counter() - llm_t0,
+        extra={"tag": "TIME"},
+    )
 
     assistant_text = content
     ref_json = json.dumps(ref_chunk_ids) if ref_chunk_ids else None
@@ -217,6 +294,13 @@ def _stream_chat(db: Session, session_id: int, user_text: str) -> Iterator[str]:
     )
     db.add(assistant_row)
     db.commit()
+
+    logger.info(
+        "[TIME] Chat pipeline session_id=%s elapsed=%.3fs",
+        session_id,
+        time.perf_counter() - pipeline_t0,
+        extra={"tag": "TIME"},
+    )
 
     yield _sse_payload(
         {

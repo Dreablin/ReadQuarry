@@ -1,7 +1,10 @@
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
+
+import config as config_root
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -88,6 +91,23 @@ def test_book_processor_b06_fixed_size_respects_chunk_size_and_overlap() -> None
         overlap_ratio=0.15,
     )
     assert small["total_chunks"] > large["total_chunks"]
+
+
+def test_book_processor_b05_ingestion_complete_uses_time_tag(caplog: pytest.LogCaptureFixture) -> None:
+    """B05: final ingestion elapsed log is tagged TIME for the log viewer."""
+    caplog.set_level(logging.INFO, logger="src.core.book_processor")
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=42, chunking_strategy="paragraph")
+    complete = [r for r in caplog.records if "Ingestion complete" in r.getMessage()]
+    assert complete
+    assert getattr(complete[-1], "tag", None) == "TIME"
 
 
 def test_book_processor_logs_ingestion_pipeline_stages(caplog: pytest.LogCaptureFixture) -> None:
@@ -204,6 +224,114 @@ def test_book_processor_persists_chunks_to_sqlite_when_db_provided() -> None:
     for r in rows:
         assert r.text
         assert r.strategy == "paragraph"
+
+
+def test_book_processor_b02_writes_debug_chunks_file_with_separators(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B02: ingestion writes chunk texts to data/book_load_chunks.txt with dash separators."""
+    monkeypatch.setattr(
+        "src.core.book_processor.settings",
+        replace(config_root.settings, data_dir=tmp_path),
+    )
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=42, chunking_strategy="paragraph")
+
+    out = tmp_path / "book_load_chunks.txt"
+    assert out.is_file()
+    raw = out.read_text(encoding="utf-8")
+    assert "One paragraph." in raw
+    assert "Second paragraph." in raw
+    lines = raw.strip().splitlines()
+    assert lines.count("--------------") == 2
+
+
+def test_book_processor_b02_replaces_existing_debug_chunks_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B02: prior debug file is removed before writing new ingestion output."""
+    monkeypatch.setattr(
+        "src.core.book_processor.settings",
+        replace(config_root.settings, data_dir=tmp_path),
+    )
+    stale = tmp_path / "book_load_chunks.txt"
+    stale.write_text("STALE_CONTENT\n--------------\n", encoding="utf-8")
+
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=99, chunking_strategy="paragraph")
+
+    body = stale.read_text(encoding="utf-8")
+    assert "STALE_CONTENT" not in body
+    assert "One paragraph." in body
+
+
+def test_book_processor_b02_logs_saved_chunks_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """B02: log includes chunk count and debug file path."""
+    monkeypatch.setattr(
+        "src.core.book_processor.settings",
+        replace(config_root.settings, data_dir=tmp_path),
+    )
+    caplog.set_level(logging.INFO, logger="src.core.book_processor")
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=DummyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="book.epub", book_id=5, chunking_strategy="paragraph")
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "Saved" in messages
+    assert "chunks" in messages.lower()
+    assert "book_load_chunks.txt" in messages
+
+
+def test_book_processor_b02_removes_debug_file_when_no_chunks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B02: empty ingestion deletes an existing book_load_chunks.txt (no stale debug dump)."""
+    monkeypatch.setattr(
+        "src.core.book_processor.settings",
+        replace(config_root.settings, data_dir=tmp_path),
+    )
+    stale = tmp_path / "book_load_chunks.txt"
+    stale.write_text("leftover\n", encoding="utf-8")
+
+    class EmptyParser:
+        def parse(self, _file_path: str) -> ParsedBook:
+            return ParsedBook(title="Empty", author=None, chapters=[ParsedChapter(title="C", content="", index=0)])
+
+    class EmptyRegistry:
+        def get_parser(self, _file_path: str):
+            return EmptyParser()
+
+    vector_store = DummyVectorStore()
+    search_engine = DummySearchEngine()
+    processor = BookProcessor(
+        parser_registry=EmptyRegistry(),
+        embedding_service=DummyEmbeddingService(),
+        vector_store=vector_store,
+        search_engine=search_engine,
+    )
+    processor.process_book(file_path="empty.epub", book_id=88, chunking_strategy="paragraph")
+    assert not stale.exists()
 
 
 def test_book_processor_skips_storage_when_no_chunks() -> None:

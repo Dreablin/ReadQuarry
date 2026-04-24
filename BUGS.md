@@ -1,228 +1,225 @@
-# ReadQuarry — Bug Reports (Phase 9)
+# ReadQuarry — Bug Reports (Phase 10)
 
 > This file is the bug specification reference for the Ralph Loop bugfix phase.
 > **Do NOT modify this file from the loop** — it is read-only for the agent.
 
 ---
 
-## B01 — Upload progress bar is fake — does not reflect real ingestion progress
+## B01 — References panel accumulates chunks from all responses — should show only current response's references
 
 **Severity**: major
-**Where**: `src/api/books.py`, `static/js/components/book-upload.js`, `static/js/api.js`
+**Where**: `static/js/app.js`, `static/js/components/references.js`
 **Steps to reproduce**:
-1. Upload an EPUB file.
-2. Watch the progress bar — it animates randomly from 5% to 92%, then jumps to 100%.
+1. Select a book, send a chat message — references appear in the right panel.
+2. Send a second chat message — new references are **appended** below the old ones.
+3. The panel now shows references from both messages, making it unclear which chunks belong to the latest response.
 
-**Expected behavior**: The progress bar reflects actual ingestion phases: parsing, chunking, embedding, indexing.
-**Actual behavior**: `book-upload.js` `startProgressAnimation()` runs a fake `setInterval` that adds `Math.random() * 12` every 220ms, capped at 92%. The backend upload endpoint (`POST /api/books/upload`) is a single HTTP request that blocks until the entire pipeline completes — there is no progress feedback from server to client.
+**Expected behavior**: Before adding new references from each AI response, the references panel should be cleared so it always shows only the references relevant to the latest response.
+**Actual behavior**: `app.js` `onDone` callback calls `refs.appendReferencedChunkIds(bid, ids, scores)` without clearing first. `appendReferencedChunkIds` counts existing `.reference-chunk` nodes and continues ordinal numbering.
 
-**Fix requirements**:
-1. **Backend** (`src/api/books.py`): Convert the upload endpoint to use **SSE** (Server-Sent Events) to stream progress updates during ingestion. The endpoint should:
-   - Accept the file and return `StreamingResponse(media_type="text/event-stream")`.
-   - Send SSE events at each stage: `{"stage": "parsing", "progress": 10}`, `{"stage": "chunking", "progress": 30}`, `{"stage": "embedding", "progress": 50, "detail": "Embedding 140 chunks..."}`, `{"stage": "indexing", "progress": 80}`, `{"stage": "done", "progress": 100, "book": {...}}`.
-   - Use percentage ranges: parsing 0–20%, chunking 20–40%, embedding 40–80%, indexing 80–95%, done 100%.
-2. **BookProcessor** (`src/core/book_processor.py`): Add an optional `on_progress` callback parameter to `process_book()`. Call it at each pipeline stage with `(stage_name, percentage)`. The upload endpoint passes a callback that yields SSE events.
-3. **Frontend API** (`static/js/api.js`): Modify `uploadBook()` to handle SSE response instead of plain JSON. Read the event stream, parse each `data: {...}` line, and call a progress callback.
-4. **Frontend UI** (`static/js/components/book-upload.js`):
-   - Remove `startProgressAnimation()` fake timer.
-   - Use real progress from SSE events to update the progress bar and show the current stage text (e.g. "Embedding 140 chunks...").
-   - On `stage: "done"`, set progress to 100% and close the dialog.
-   - On error, show the error in the feedback element.
-5. Tests: verify that the upload endpoint yields SSE events with increasing progress values.
-
----
-
-## B02 — Chat history persists across book switches — should start fresh
-
-**Severity**: major
-**Where**: `static/js/app.js`, `src/api/chat.py`
-**Steps to reproduce**:
-1. Select Book A, have a conversation.
-2. Select Book B — the old chat history from Book B's previous session is loaded.
-3. The user expects a fresh start when activating a book for discussion.
-
-**Expected behavior**: When the user selects a book, a **new** chat session is created and the chat panel starts empty. Previous sessions are not lost (they remain in the DB) but the user begins with a clean conversation context.
-**Actual behavior**: `ensureSession(bookId)` in `app.js` calls `listChatSessions(bookId)` and picks the **newest** existing session, then `loadHistory(sessionId)` fills the chat panel with old messages. The user sees stale conversation from before the restart.
-
-**Fix requirements**:
-1. **Frontend** (`static/js/app.js`): In the `onChange` handler for book selection, always create a **new** session instead of reusing the existing one. Replace the `ensureSession(bookId)` logic:
-   - Instead of picking the first existing session, call `createChatSession({ book_id: bookId })` directly.
-   - The chat panel will be empty since the new session has no messages.
-   - This way, each time the user selects (or re-selects) a book, they get a fresh conversation.
-2. **Backend**: No changes needed — `POST /api/chat/sessions` already creates new sessions. The old sessions remain in the DB (no data loss).
-3. Tests: verify that selecting a book creates a new session and does not load old messages.
-
----
-
-## B03 — Add "Prompts" tab to settings for viewing and editing system prompts
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/components/settings.js`, `src/api/settings.py`, `src/api/chat.py`
-**Steps to reproduce**:
-1. Open Settings — only "LLM" and "Embeddings & Search" tabs exist.
-2. The system prompt for the LLM is hardcoded in `_system_prompt()` in `chat.py` — the user cannot see or change it.
-
-**Expected behavior**: A third tab "Prompts" in the Settings dialog. It shows each system prompt used by the application as a labeled `<textarea>`, pre-filled with the current value. The user can edit and save. Prompts persist across restarts.
-**Actual behavior**: `_system_prompt()` in `chat.py` returns a hardcoded string. There is no UI to view or edit it.
-
-**This task is split into sub-tasks B03a, B03b, B03c for atomicity.**
-
----
-
-## B03a — Backend: store system prompts in settings with defaults
-
-**Severity**: major
-**Where**: `src/api/settings.py`, `src/api/chat.py`
-**Depends on**: nothing
-
-**Fix requirements**:
-1. **Settings defaults** (`src/api/settings.py`):
-   - Add a new key `"system_prompt"` to `DEFAULTS` with the current hardcoded value from `_system_prompt()`:
-     ```
-     "You are ReadQuarry, a book discussion assistant. Answer using only the excerpts below. When you use information from an excerpt, cite it with the matching bracket label like [1] or [2]. If the excerpts do not contain enough information, say so clearly."
-     ```
-   - Add `system_prompt: str | None = None` to `SettingsUpdate` (no special validation needed, just a string).
-2. **Chat** (`src/api/chat.py`):
-   - Modify `_system_prompt()` to accept `app_settings` dict and read `app_settings.get("system_prompt", <default>)`.
-   - Update `_stream_chat` to pass `app_settings` to `_system_prompt(app_settings)`.
-3. Tests: verify that `system_prompt` appears in defaults, can be updated via PUT, and that `_system_prompt()` returns the custom value when set.
-
----
-
-## B03b — Frontend: add "Prompts" tab to settings dialog
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/components/settings.js`
-**Depends on**: B03a
-
-**Fix requirements**:
-1. **HTML** (`static/index.html`):
-   - Add a third tab button in `.settings-tabs`: `<button type="button" id="settings-tab-prompts" class="settings-tab" role="tab" aria-selected="false" aria-controls="settings-panel-prompts">Prompts</button>`.
-   - Add a third tab panel `<div id="settings-panel-prompts" class="settings-tab-panel settings-tab-panel--hidden" role="tabpanel" aria-labelledby="settings-tab-prompts">` containing a `<fieldset>` with:
-     - `<label for="settings-system_prompt">System prompt (Discussion)</label>`
-     - `<textarea id="settings-system_prompt" name="system_prompt" rows="6"></textarea>`
-2. **JS** (`static/js/components/settings.js`):
-   - Add `"system_prompt"` to `FIELD_KEYS`.
-   - Register the new tab button click handler in `initSettings` (same pattern as LLM/Embeddings tabs).
-   - Update `activateSettingsTab` to handle three tabs: `"llm"`, `"embeddings"`, `"prompts"`.
-3. Tests: verify the Prompts tab is present, the textarea is populated from settings, and saving persists the value.
-
----
-
-## B04 — Paragraph chunking misses paragraphs — `clean_html` extracts only `<p>` and heading tags
-
-**Severity**: critical
-**Where**: `src/parsers/epub_parser.py`
-**Steps to reproduce**:
-1. Upload an EPUB with paragraph chunking strategy.
-2. The ingestion log shows ~140 chunks, but the book has far more paragraphs.
-
-**Expected behavior**: All text content from the EPUB is extracted, producing a chunk count proportional to the actual paragraph count in the book.
-**Actual behavior**: `clean_html()` in `epub_parser.py` only extracts text from `<p>`, `<h1>`–`<h6>`, and `<li>` tags (line 26). Text that lives in other block-level elements — `<div>`, `<blockquote>`, `<td>`, `<dd>`, `<figcaption>`, `<section>`, `<article>`, bare text nodes — is **silently dropped** when any `<p>` tag exists in the document. The fallback path (lines 32–38) only activates when **zero** matching tags are found.
-
-**Root cause** (line 26–31):
-```python
-for tag in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]):
-    piece = " ".join(tag.get_text(separator=" ", strip=True).split())
-    if piece:
-        blocks.append(piece)
-if blocks:
-    return "\n\n".join(blocks)   # ← returns early, text in <div>/<blockquote>/etc. lost
+**Root cause** (`static/js/app.js` lines ~195-198):
+```javascript
+onDone: (ids, scores) => {
+  const bid = bookListRef?.getSelectedBookId() ?? null;
+  if (bid != null) void refs.appendReferencedChunkIds(bid, ids, scores);
+},
 ```
-
-Many EPUBs wrap content in `<div>` with sub-`<div>` paragraphs instead of `<p>` tags. If even one `<p>` exists (e.g. a footer), the early return triggers and all `<div>`-based content is lost.
+No `refs.clear()` call before appending.
 
 **Fix requirements**:
-1. **Expand the tag list** in `clean_html()` to include more block-level elements:
-   `["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "blockquote", "dd", "dt", "figcaption", "td", "th", "pre"]`.
-2. **Also handle `<div>` leaves**: After the primary tag extraction, find all `<div>` elements that have **no** child block elements (leaf `<div>`s) and extract their text too. This catches EPUB patterns where `<div class="para">...</div>` is used instead of `<p>`.
-3. **Deduplication**: Since `find_all` is recursive, a `<p>` inside a `<blockquote>` would be found by both. Use a set to track seen text or process only leaf nodes.
-4. **Preserve order**: Blocks must remain in document order.
-5. Tests: create an EPUB-like HTML with `<div>`-wrapped paragraphs and verify they are all extracted.
+1. **`app.js`**: In the `onDone` callback, add `refs.clear()` **before** calling `refs.appendReferencedChunkIds(...)`:
+   ```javascript
+   onDone: (ids, scores) => {
+     const bid = bookListRef?.getSelectedBookId() ?? null;
+     if (bid != null) {
+       refs.clear();
+       void refs.appendReferencedChunkIds(bid, ids, scores);
+     }
+   },
+   ```
+2. No backend changes needed.
+3. Tests: verify references panel is cleared before each new set of references is displayed.
 
 ---
 
-## B05 — Sentence chunking misses sentences — same `clean_html` root cause plus regex limitations
+## B02 — Save chunks to a debug file during book ingestion
 
-**Severity**: critical
-**Where**: `src/parsers/epub_parser.py`, `src/core/chunking.py`
-**Depends on**: B04 (the parser fix provides more text to chunk)
-**Steps to reproduce**:
-1. Upload an EPUB with sentence chunking strategy.
-2. The ingestion log shows far fewer sentence chunks than expected.
+**Severity**: minor
+**Where**: `src/core/book_processor.py`, `config.py`
+**Steps to reproduce**: N/A — feature does not exist yet.
 
-**Expected behavior**: The sentence count should approximate the total sentences across all extracted text.
-**Actual behavior**: Two compounding issues:
-1. **Parser drops text** (same as B04): `clean_html()` misses content in `<div>`, `<blockquote>`, etc.
-2. **Sentence regex misses splits**: The regex `(?<=[.!?…])\s+` in `SentenceChunking.chunk()` (line 41 of `chunking.py`) requires **whitespace after** the punctuation. Sentences ending at the very end of a block (followed by `\n\n` from paragraph joining) may not split correctly.
+**Expected behavior**: When a book is uploaded and chunked, all resulting chunks are also written to `data/book_load_chunks.txt` for debugging. Each chunk is separated by a line of dashes `"--------------"`. If the file already exists, it is deleted before writing new chunks.
+**Actual behavior**: Chunks are only stored in SQLite and ChromaDB — no human-readable debug file.
 
 **Fix requirements**:
-1. **Parser fix from B04** addresses the primary data loss.
-2. **Sentence splitting** (`src/core/chunking.py` `SentenceChunking`):
-   - Before splitting by sentence regex, first split by `\n\s*\n` (paragraph boundaries) to handle multi-paragraph text blocks. Then split each paragraph into sentences.
-   - Alternatively, normalize the text by replacing `\n\n` with `. ` or a space before sentence splitting, so the regex can work across paragraph boundaries.
-   - Consider using a more robust sentence boundary regex that also splits on `\n\n` as a sentence boundary.
-3. Tests: verify sentence chunking produces the correct number of sentences from multi-paragraph text with various punctuation patterns.
+1. **`src/core/book_processor.py`** in `iter_ingestion()`, after the chunking loop builds the `chunks` list (after the `logger.info("Chunking ...")` call):
+   - Compute path: `chunks_file = Path(settings.data_dir) / "book_load_chunks.txt"` (import `settings` from `config`).
+   - If the file exists, delete it.
+   - Write all chunks to the file: for each chunk in `chunks`, write `chunk["text"]` followed by a separator line `"--------------"`. Use UTF-8 encoding.
+   - Log: `logger.info("Saved %d chunks to %s", len(chunks), chunks_file)`.
+2. This file is in `data/` which is already gitignored.
+3. Tests: verify the file is created with correct content and separator, and that it is deleted and recreated on subsequent uploads.
 
 ---
 
-## B06 — Fixed-size chunking has no UI for chunk size — user cannot see or configure the size
+## B03 — Add `llm_timeout` setting (default 300 seconds) to LLM configuration
 
 **Severity**: major
-**Where**: `static/index.html`, `static/js/components/book-upload.js`, `static/js/api.js`, `src/api/books.py`, `src/core/book_processor.py`
+**Where**: `src/api/settings.py`, `src/core/llm_client.py`, `src/api/chat.py`
 **Steps to reproduce**:
-1. Open the upload dialog, select "Fixed size" chunking strategy.
-2. No additional fields appear — the user has no idea what size will be used.
+1. Send a complex question to an LLM that takes >120 seconds to respond.
+2. The request times out because `llm_client.py` uses `timeout = self._timeout or 120.0`.
 
-**Expected behavior**: When "Fixed size" is selected, additional input fields appear: "Chunk size (words)" defaulting to 256, and "Overlap ratio" defaulting to 0.15. These values are sent to the backend and used by `FixedSizeChunking`.
-**Actual behavior**: `FixedSizeChunking()` always uses its default constructor values (256 words, 0.15 overlap). The upload dialog shows only the strategy dropdown — no conditional fields.
+**Expected behavior**: The timeout is configurable in Settings and defaults to 300 seconds.
+**Actual behavior**: Hardcoded to 120 seconds in `_ollama_chat()` at line `timeout = self._timeout or 120.0`. The `LLMClient` constructor accepts an optional `timeout` parameter, but `chat.py` never passes it — `LLMClient(dict(app_settings))` uses no timeout kwarg.
 
 **Fix requirements**:
-1. **HTML** (`static/index.html`): Add a conditional group inside the upload dialog, after the strategy `<select>`:
+1. **Settings** (`src/api/settings.py`):
+   - Add `"llm_timeout": 300` to `DEFAULTS`.
+   - Add `llm_timeout: int | None = Field(default=None, gt=0, le=600)` to `SettingsUpdate`.
+2. **LLM Client** (`src/core/llm_client.py`):
+   - In `__init__`, if `timeout` is `None`, read `settings.get("llm_timeout", 300)` and use that.
+   - Update the Ollama path: `timeout = self._timeout or float(self._settings.get("llm_timeout", 300))`.
+3. **Chat** (`src/api/chat.py`): No explicit change needed if `LLMClient` reads timeout from settings dict. But if not already passing, ensure `LLMClient(dict(app_settings))` includes the `llm_timeout` key (it does since it passes the full settings dict).
+4. **Frontend**: Add the field to the LLM tab in `index.html` (shared section, visible for both Ollama and Cloud):
    ```html
-   <div id="upload-fixed-size-options" class="upload-strategy-options" hidden>
-     <label for="upload-chunk-size">Chunk size (words)</label>
-     <input type="number" id="upload-chunk-size" name="chunk_size" value="256" min="50" max="2000" step="1" />
-     <label for="upload-overlap-ratio">Overlap ratio</label>
-     <input type="number" id="upload-overlap-ratio" name="overlap_ratio" value="0.15" min="0" max="0.5" step="0.05" />
+   <label for="settings-llm_timeout">LLM timeout (seconds)</label>
+   <input type="number" id="settings-llm_timeout" name="llm_timeout" min="10" max="600" step="10" />
+   ```
+   Add `"llm_timeout"` to `FIELD_KEYS` in `settings.js` and parse as int in `readForm()`.
+5. Tests: verify the setting persists, the LLMClient uses it, and the default is 300.
+
+---
+
+## B04 — Add tag system to log entries (INFO, TIME, LLM)
+
+**Severity**: major
+**Where**: `src/api/logs.py`
+**Steps to reproduce**: N/A — feature does not exist. Logs currently have no tag/category system.
+
+**Expected behavior**: Each log entry has a `tag` field. Standard informational logs are tagged `INFO`. Duration/timing logs are tagged `TIME`. LLM communication logs are tagged `LLM`. The API returns the tag with each entry, and also returns a list of all distinct tags seen.
+**Actual behavior**: Log entries have `time`, `level`, `logger`, `message` — no tag field.
+
+**Fix requirements**:
+1. **`src/api/logs.py`** — `RingBufferHandler.emit()`:
+   - Read `tag` from the log record's `extra` dict: `tag = getattr(record, "tag", "INFO")`.
+   - Include it in the entry dict: `"tag": tag`.
+2. **`src/api/logs.py`** — `get_logs()` endpoint:
+   - In addition to `entries` and `count`, return `"tags"`: a sorted list of all unique tags seen across all entries in the buffer. Example: `{"entries": [...], "count": 42, "tags": ["INFO", "LLM", "TIME"]}`.
+3. **Helper function**: Create a module-level helper in a common location (or in `logs.py` itself) so other modules can easily log with a tag:
+   ```python
+   def log_with_tag(lgr: logging.Logger, level: int, tag: str, msg: str, *args: Any) -> None:
+       lgr.log(level, msg, *args, extra={"tag": tag})
+   ```
+   Or simpler: just document that `logger.info("msg", extra={"tag": "TIME"})` works.
+4. Tests: verify entries have a `tag` field defaulting to `"INFO"`, and that custom tags propagate correctly.
+
+---
+
+## B05 — Add duration logging with TIME tag for all long operations
+
+**Severity**: major
+**Where**: `src/api/chat.py`, `src/api/search.py`, `src/core/book_processor.py`
+**Depends on**: B04 (tag system must exist first)
+**Steps to reproduce**:
+1. Open Logs tab.
+2. Perform a search or chat — no timing information is shown for individual operations.
+
+**Expected behavior**: Every long operation logs its duration with the `TIME` tag:
+- Query vectorization (embedding the search query)
+- Semantic search (ChromaDB query)
+- Exact search (SearchEngine query)
+- Hybrid merge
+- LLM response generation time
+- Total chat response pipeline time
+
+**Actual behavior**: Only book ingestion logs total elapsed time. Search and chat operations have no duration logging.
+
+**Fix requirements**:
+1. **`src/api/search.py`**:
+   - `semantic_search`: wrap in `time.perf_counter()`, log: `logger.info("[TIME] Semantic search book_id=%s elapsed=%.3fs", ..., extra={"tag": "TIME"})`.
+   - `exact_search`: same pattern.
+   - `hybrid_search`: log total time.
+2. **`src/api/chat.py`** in `_build_context_chunks`:
+   - Time the embedding step: `embedder.embed_text(query)`.
+   - Time the ChromaDB query.
+   - Time the exact search.
+   - Time the hybrid merge.
+   - Log each with `extra={"tag": "TIME"}`.
+3. **`src/api/chat.py`** in `_stream_chat`:
+   - Time `_build_context_chunks(...)` total.
+   - Time `llm.chat_completion(...)`.
+   - Time total pipeline (from user message receipt to assistant message commit).
+   - Log each with `extra={"tag": "TIME"}`.
+4. **`src/core/book_processor.py`**: The existing `elapsed_seconds` log at the end of ingestion should use `extra={"tag": "TIME"}`.
+5. Tests: verify TIME-tagged entries appear after search and chat operations.
+
+---
+
+## B06 — Log full LLM prompt with LLM tag
+
+**Severity**: major
+**Where**: `src/api/chat.py`
+**Depends on**: B04 (tag system must exist first)
+**Steps to reproduce**:
+1. Send a chat message.
+2. Check Logs — the LLM request is logged with `messages` count and `context_chars`, but the actual prompt content is not visible.
+
+**Expected behavior**: The full prompt (system message + user message with RAG context) is logged with the `LLM` tag so the user can inspect exactly what was sent to the model.
+**Actual behavior**: Only metadata is logged: `"LLM request session_id=%s messages=%d context_chars=%d"`.
+
+**Fix requirements**:
+1. **`src/api/chat.py`** in `_stream_chat`, after building the `messages` list and before calling `llm.chat_completion(...)`:
+   - Log the full prompt with the `LLM` tag:
+     ```python
+     prompt_text = "\n---\n".join(f"[{m['role']}]\n{m['content']}" for m in messages)
+     logger.info(
+         "[LLM] Full prompt for session_id=%s:\n%s",
+         session_id, prompt_text,
+         extra={"tag": "LLM"},
+     )
+     ```
+   - Also log the LLM response content with the `LLM` tag:
+     ```python
+     logger.info(
+         "[LLM] Response for session_id=%s (%d chars):\n%s",
+         session_id, len(content), content[:2000],
+         extra={"tag": "LLM"},
+     )
+     ```
+2. Truncate very long prompts in the log to prevent the ring buffer from filling with a single entry (e.g. first 5000 chars).
+3. Tests: verify LLM-tagged entries appear containing the prompt content.
+
+---
+
+## B07 — Add tag filter dropdown to the Logs viewer
+
+**Severity**: major
+**Where**: `static/index.html`, `static/js/components/log-viewer.js`, `static/js/api.js`
+**Depends on**: B04 (backend must return `tag` field and `tags` list)
+**Steps to reproduce**:
+1. Open the Logs tab — all log entries are shown with no way to filter.
+
+**Expected behavior**: A dropdown below the log viewer with options: "ALL" (default) plus every tag that exists in the system (e.g. INFO, TIME, LLM). Selecting a tag shows only entries with that tag. Selecting ALL shows everything.
+**Actual behavior**: No filter UI exists.
+
+**Fix requirements**:
+1. **HTML** (`static/index.html`): Add a filter bar below `#log-viewer-output` inside `#view-logs`:
+   ```html
+   <div class="log-filter">
+     <label for="log-filter-tag">Filter by tag:</label>
+     <select id="log-filter-tag">
+       <option value="ALL">ALL</option>
+     </select>
    </div>
    ```
-2. **Frontend JS** (`static/js/components/book-upload.js`):
-   - Add a `change` listener on the `chunkSelect` (`#chunking-strategy`). When value is `"fixed-size"`, show `#upload-fixed-size-options` (`hidden = false`); otherwise hide it.
-   - When submitting, if strategy is `"fixed-size"`, read `chunk_size` and `overlap_ratio` from the inputs and pass them to `uploadBook()`.
-3. **Frontend API** (`static/js/api.js`): Update `uploadBook()` to accept optional `chunk_size` and `overlap_ratio` parameters and append them to `FormData` when provided.
-4. **Backend** (`src/api/books.py`): Accept optional `chunk_size: int = Form(256)` and `overlap_ratio: float = Form(0.15)` parameters in `upload_book()`. Pass them through to `BookProcessor`.
-5. **BookProcessor** (`src/core/book_processor.py`): Update `_get_chunker()` to accept and forward `chunk_size` and `overlap_ratio` to `FixedSizeChunking(chunk_size=..., overlap_ratio=...)`.
-6. Tests: verify that custom chunk_size/overlap_ratio values are used when provided, and defaults apply when omitted.
-
----
-
-## B07 — No "Clear Chat" button — user cannot start a fresh conversation without switching books
-
-**Severity**: major
-**Where**: `static/index.html`, `static/js/app.js`, `static/js/components/chat.js`
-**Steps to reproduce**:
-1. Select a book, have a conversation.
-2. Want to start over with a clean chat for the same book — no way to do it.
-
-**Expected behavior**: A "Clear Chat" button in the chat panel that clears the current messages and creates a new session, giving the user a fresh LLM context.
-**Actual behavior**: No such button exists. The only way to get a new session is to switch to another book and back (and with B02 fix, each book switch creates a new session).
-
-**Fix requirements**:
-1. **HTML** (`static/index.html`): Add a "Clear Chat" button in `#chat-panel`, near the chat form:
-   ```html
-   <button type="button" id="clear-chat" class="btn-clear">Clear Chat</button>
-   ```
-   Place it in the panel header area or as a toolbar button above the chat messages.
-2. **Frontend** (`static/js/app.js`):
-   - Get the `#clear-chat` button.
-   - On click:
-     a. Get the currently selected `bookId`.
-     b. If no book selected, do nothing.
-     c. Call `createChatSession({ book_id: bookId })` to create a **new** session.
-     d. Set `sessionId` to the new session's id.
-     e. Call `chatApi.clearMessages()` to empty the chat panel.
-     f. Call `refs.clear()` to clear references.
-     g. Set status to "New conversation started".
-3. **No backend changes needed** — creating a new session is already supported. The old session stays in the DB.
-4. Tests: verify the clear chat button exists and creates a new session.
+2. **`log-viewer.js`**:
+   - Get the `#log-filter-tag` select element.
+   - In `refresh()`, after fetching `data`:
+     a. Read `data.tags` (array of strings). Update the dropdown options: keep "ALL" as first, then add an `<option>` for each tag not already present. Do not remove options that disappeared (tags are additive).
+     b. Read the current filter value from the select.
+     c. If filter is not "ALL", filter `entries` to only those where `entry.tag === filterValue`.
+     d. Render only the filtered entries.
+   - When the user changes the filter dropdown, trigger a refresh immediately (or just re-render from cached data).
+3. **API** (`static/js/api.js`): No changes needed — `fetchLogs()` already returns the full response which will now include `tags`.
+4. Tests: verify the filter dropdown renders tags and filters entries correctly.

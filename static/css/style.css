@@ -240,6 +240,52 @@ body {
   border-radius: var(--radius-md);
 }
 
+/* B07-CSS: logs tag filter — glass row aligned with search / header selects */
+.log-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.log-filter label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+#log-filter-tag {
+  min-width: 10rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#log-filter-tag:hover {
+  border-color: rgba(120, 140, 200, 0.4);
+}
+
+#log-filter-tag:focus {
+  outline: none;
+  border-color: rgba(107, 76, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(107, 76, 255, 0.25);
+}
+
 .search-form {
   display: flex;
   flex-wrap: wrap;

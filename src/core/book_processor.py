@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Generator
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
+
+from config import settings
 
 from src.core.chunking import (
     ChapterAwareRecursiveChunking,
@@ -120,6 +123,18 @@ class BookProcessor:
             chunker_name,
             len(chunks),
         )
+        chunks_file = Path(settings.data_dir) / "book_load_chunks.txt"
+        chunks_file.parent.mkdir(parents=True, exist_ok=True)
+        if chunks_file.exists():
+            chunks_file.unlink()
+        if chunks:
+            with chunks_file.open("w", encoding="utf-8") as out:
+                for chunk in chunks:
+                    out.write(chunk["text"])
+                    out.write("\n")
+                    out.write("--------------")
+                    out.write("\n")
+        logger.info("Saved %d chunks to %s", len(chunks), chunks_file)
         yield BookProcessor._emit_progress(on_progress, "chunking", 30, None)
 
         texts = [c["text"] for c in chunks]
@@ -164,7 +179,8 @@ class BookProcessor:
             )
             logger.info("Embedding book_id=%s total_chunks=%d", book_id, len(texts))
             embeddings: list[list[float]] = []
-            batch_size = 16
+            # Шаг обновления 5% от всех чанков (минимум 1)
+            batch_size = max(1, int(n_chunk * 0.05))
             for i in range(0, n_chunk, batch_size):
                 batch_texts = texts[i:i+batch_size]
                 batch_emb = self.embedding_service.embed_texts(batch_texts)
@@ -236,6 +252,7 @@ class BookProcessor:
             book_id,
             len(chunks),
             elapsed,
+            extra={"tag": "TIME"},
         )
 
         return {

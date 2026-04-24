@@ -17,9 +17,54 @@ export function initLogViewer(options = {}) {
     throw new Error(`initLogViewer: #${containerId} not found`);
   }
 
+  const tagSelect = document.getElementById("log-filter-tag");
+  if (!(tagSelect instanceof HTMLSelectElement)) {
+    throw new Error("initLogViewer: #log-filter-tag not found");
+  }
+
   /** @type {ReturnType<typeof setInterval> | null} */
   let timer = null;
   let lastCount = -1;
+  /** @type {object[]} */
+  let lastEntries = [];
+
+  /**
+   * Add `<option>` for each API tag not already in the dropdown (additive; never remove).
+   * @param {unknown} apiTags
+   */
+  function mergeTagOptions(apiTags) {
+    const tags = Array.isArray(apiTags) ? apiTags : [];
+    const have = new Set(Array.from(tagSelect.options).map((o) => o.value));
+    for (const t of tags) {
+      if (typeof t !== "string" || !t) continue;
+      if (have.has(t)) continue;
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      tagSelect.appendChild(opt);
+      have.add(t);
+    }
+  }
+
+  function applyFilterAndRender() {
+    const filterVal = tagSelect.value;
+    let rows = lastEntries;
+    if (filterVal !== "ALL") {
+      rows = lastEntries.filter((e) => {
+        const tag = typeof e?.tag === "string" ? e.tag : "INFO";
+        return tag === filterVal;
+      });
+    }
+    const lines = rows.map((e) =>
+      typeof e?.message === "string" ? e.message : JSON.stringify(e)
+    );
+    pre.textContent = lines.join("\n");
+    pre.scrollTop = pre.scrollHeight;
+  }
+
+  tagSelect.addEventListener("change", () => {
+    applyFilterAndRender();
+  });
 
   async function refresh() {
     try {
@@ -29,10 +74,10 @@ export function initLogViewer(options = {}) {
       if (count === lastCount) {
         return;
       }
-      const lines = entries.map((e) => (typeof e?.message === "string" ? e.message : JSON.stringify(e)));
-      pre.textContent = lines.join("\n");
-      pre.scrollTop = pre.scrollHeight;
       lastCount = count;
+      lastEntries = entries;
+      mergeTagOptions(data?.tags);
+      applyFilterAndRender();
     } catch {
       /* keep previous content on transient errors */
     }

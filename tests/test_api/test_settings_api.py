@@ -50,6 +50,37 @@ def test_settings_api_get_returns_defaults() -> None:
     assert "embedding_model" in payload
 
 
+def test_settings_api_b03_llm_timeout_default_and_persistence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B03: llm_timeout defaults to 300 and persists via settings.json."""
+    monkeypatch.setattr(settings_module, "app_config", SimpleNamespace(data_dir=tmp_path))
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+
+    c = TestClient(app)
+    assert c.get("/api/settings").json()["llm_timeout"] == 300
+
+    r = c.put("/api/settings", json={"llm_timeout": 420})
+    assert r.status_code == 200
+    assert r.json()["llm_timeout"] == 420
+
+    path = tmp_path / "settings.json"
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    assert on_disk["llm_timeout"] == 420
+
+    settings_module._SETTINGS.clear()
+    settings_module._SETTINGS.update(dict(settings_module.DEFAULTS))
+    settings_module._merge_file_into_settings()
+    assert c.get("/api/settings").json()["llm_timeout"] == 420
+
+
+def test_settings_api_b03_rejects_llm_timeout_out_of_range() -> None:
+    """B03: llm_timeout must be in 1..600."""
+    assert client.put("/api/settings", json={"llm_timeout": 0}).status_code == 422
+    assert client.put("/api/settings", json={"llm_timeout": 601}).status_code == 422
+
+
 def test_settings_api_b03a_system_prompt_in_defaults() -> None:
     """B03a: system_prompt is in DEFAULTS and returned by GET."""
     assert "system_prompt" in settings_module.DEFAULTS
